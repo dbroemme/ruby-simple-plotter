@@ -1,31 +1,43 @@
 require 'gosu'
-require '../lib/simpleplot'
+require_relative 'plotter'
 
 # This app allows you to quickly use the SimplePlot gem and also
 # serves as a starting point for how you can use it in your own
 # applications.
 class SimplePlotterApp < Gosu::Window
     def initialize
-        super(800, 600, false)
+        super(900, 700, {:resizable => true})
         self.caption = "Simple Plot App"
-        @plotter = SimplePlot::SimplePlot.new
+        @widget_start_x = 100
+        @widget_start_y = 100
+        @plotter = SimplePlot::SimplePlot.new(width, height, @widget_start_x, @widget_start_y)
         @plotter.data = create_atan_wave
+        @plotter.calculate_axis_labels
+        @font = Gosu::Font.new(32)
+        @update_count = 0
+        @pause = false
     end 
 
     def update 
-        # Nothing to do 
+        if not @pause
+            @update_count = @update_count + 1
+        end 
     end 
     
     def draw 
-        @plotter.render
+        draw_rect(0, 0, 100, 1000, Gosu::Color::RED)
+        draw_rect(0, 0, 1000, 100, Gosu::Color::RED)
+        @plotter.render(width, height, @update_count)
 
         if is_cursor_on_graph 
-            @plotter.draw_cursor_lines(mouse_x, mouse_y)
+            @plotter.draw_cursor_lines(width, height, mouse_x, mouse_y)
         end 
+
+        @font.draw_text("#{width}, #{height}", @widget_start_x + 200, height - 32, 1, 1, 1, Gosu::Color::WHITE) 
     end 
 
     def is_cursor_on_graph
-        mouse_x > 199 and mouse_x < 801 and mouse_y > 0 and mouse_y < 400 
+        mouse_x > @widget_start_x + 199 and mouse_x < width and mouse_y > @widget_start_y and mouse_y < height 
     end 
 
     def button_down id

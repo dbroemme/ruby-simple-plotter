@@ -1,3 +1,0 @@
-#!/usr/bin/env bash
-
-ruby ../simple_plot_app.rb
