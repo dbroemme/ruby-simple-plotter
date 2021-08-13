@@ -29,7 +29,8 @@ module SimplePlot
         attr_accessor :grid_line_color
         attr_accessor :zero_line_color
         attr_accessor :cursor_line_color
-        attr_accessor :data_point_size
+        attr_accessor :data_point_size 
+        attr_accessor :widgets
 
         def initialize(width, height, start_x = 0, start_y = 0)
             ########################################
@@ -39,6 +40,7 @@ module SimplePlot
             @start_y = start_y
 
             @data = []
+            @widgets = []
 
             @axis_labels_color = Gosu::Color::CYAN
             @grid_line_color = Gosu::Color::GRAY
@@ -140,10 +142,8 @@ module SimplePlot
         end 
 
         def render(width, height, update_count)
-            Gosu::draw_line x_pixel_to_screen(@margin_size), y_pixel_to_screen(0), @axis_labels_color,
-                            x_pixel_to_screen(@margin_size), y_pixel_to_screen(graph_height), @axis_labels_color
-            Gosu::draw_line x_pixel_to_screen(@margin_size), y_pixel_to_screen(graph_height), @axis_labels_color,
-                            x_pixel_to_screen(@margin_size + graph_width), y_pixel_to_screen(graph_height), @axis_labels_color
+            axis_lines = AxisLines.new(x_pixel_to_screen(@margin_size), y_pixel_to_screen(0), graph_width, graph_height, @axis_labels_color)
+            axis_lines.draw 
 
             y = 0
             @y_axis_labels.each do |label|
@@ -168,17 +168,10 @@ module SimplePlot
             end
 
             # Draw the data points
-            half_size = @data_point_size / 2
             @data.each do |point|
                 if is_on_screen(point) 
-                    point.pixel_x = draw_x(point.x)
-                    point.pixel_y = draw_y(point.y)
-                    Gosu::draw_rect(point.pixel_x - half_size, point.pixel_y - half_size,
-                                    @data_point_size, @data_point_size,
-                                    point.color, 2) 
-                else 
-                    point.pixel_x = nil
-                    point.pixel_y = nil
+                    on_screen_point = PlotPoint.new draw_x(point.x), draw_y(point.y)
+                    on_screen_point.draw 
                 end
             end
 
@@ -194,6 +187,8 @@ module SimplePlot
             end
 
             if @display_grid 
+                grid_widgets = []
+
                 grid_x = @left_x
                 grid_y = @bottom_y + 1
                 while grid_y < @top_y
@@ -204,7 +199,7 @@ module SimplePlot
                     if grid_y == 0 and grid_y != @bottom_y.to_i
                         color = @zero_line_color
                     end
-                    Gosu::draw_line dx, dy, color, last_x, dy, color, 12
+                    grid_widgets << Line.new(dx, dy, last_x, dy, color) 
                     grid_y = grid_y + 1
                 end
                 grid_x = @left_x + 1
@@ -217,8 +212,12 @@ module SimplePlot
                     if grid_x == 0 and grid_x != @left_x.to_i
                         color = @zero_line_color 
                     end
-                    Gosu::draw_line dx, dy, color, dx, last_y, color, 12
+                    grid_widgets << Line.new(dx, dy, dx, last_y, color) 
                     grid_x = grid_x + 1
+                end
+
+                grid_widgets.each do |gw| 
+                    gw.draw 
                 end
             end
         end

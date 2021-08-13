@@ -25,8 +25,8 @@ class SimplePlotterApp < Gosu::Window
     end 
     
     def draw 
-        draw_rect(0, 0, 100, 1000, Gosu::Color::RED)
-        draw_rect(0, 0, 1000, 100, Gosu::Color::RED)
+        #draw_rect(0, 0, 100, 1000, Gosu::Color::RED)
+        #draw_rect(0, 0, 1000, 100, Gosu::Color::RED)
         @plotter.render(width, height, @update_count)
 
         if is_cursor_on_graph 
