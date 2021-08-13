@@ -147,23 +147,19 @@ module SimplePlot
 
             y = 0
             @y_axis_labels.each do |label|
-                Gosu::draw_line x_pixel_to_screen(@margin_size - 20), y_pixel_to_screen(y), @axis_labels_color,
-                                x_pixel_to_screen(@margin_size), y_pixel_to_screen(y), @axis_labels_color
-                @font.draw_text(label,
-                                x_pixel_to_screen(36),
-                                (y == 0 ? y_pixel_to_screen(0) : y_pixel_to_screen(y - 16)),
-                                1, 1, 1, @axis_labels_color)
+                val = VerticalAxisLabel.new(x_pixel_to_screen(@margin_size),
+                                            y_pixel_to_screen(y),
+                                            label, @font, @axis_labels_color) 
+                val.draw
                 y = y + 100
             end
 
             x = @margin_size
             @x_axis_labels.each do |label|
-                Gosu::draw_line x_pixel_to_screen(x), y_pixel_to_screen(graph_height), @axis_labels_color,
-                                x_pixel_to_screen(x), y_pixel_to_screen(graph_height) + 20, @axis_labels_color
-                @font.draw_text(label,
-                                (x > 700 ? x_pixel_to_screen(780) : x_pixel_to_screen(x - 18)),
-                                y_pixel_to_screen(426),
-                                1, 1, 1, @axis_labels_color)
+                val = HorizontalAxisLabel.new(x_pixel_to_screen(x),
+                                              y_pixel_to_screen(graph_height),
+                                              label, @font, @axis_labels_color) 
+                val.draw
                 x = x + 150
             end
 

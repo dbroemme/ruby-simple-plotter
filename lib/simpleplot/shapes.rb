@@ -71,4 +71,39 @@ module SimplePlot
             Gosu::draw_line x, y, @color, x2, y2, @color
         end
     end 
+
+    class VerticalAxisLabel < Widget
+        attr_accessor :label
+
+        def initialize(x, y, label, font, color = Gosu::Color::GREEN) 
+            super x, y, color 
+            @label = label 
+            @font = font
+        end
+
+        def render
+            text_pixel_width = @font.text_width(@label)
+            Gosu::draw_line @x - 20, @y, @color,
+                            @x, @y, @color
+            
+            @font.draw_text(@label, @x - text_pixel_width - 28, @y - 16, 1, 1, 1, @color)
+        end
+    end 
+
+    class HorizontalAxisLabel < Widget
+        attr_accessor :label
+
+        def initialize(x, y, label, font, color = Gosu::Color::GREEN) 
+            super x, y, color 
+            @label = label 
+            @font = font
+        end
+
+        def render
+            text_pixel_width = @font.text_width(@label)
+            Gosu::draw_line @x, @y, @color, @x, @y + 20, @color
+            @font.draw_text(@label, @x - (text_pixel_width / 2), @y + 26, 1, 1, 1, @color)
+        end
+    end 
+
 end
