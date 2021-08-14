@@ -12,7 +12,7 @@ class SimplePlotterApp < Gosu::Window
         @widget_start_y = 100
         @plotter = SimplePlot::SimplePlot.new(width, height, @widget_start_x, @widget_start_y)
         @plotter.add_data("atan", create_atan_wave)
-        @plotter.calculate_axis_labels
+        @plotter.add_data("sin", create_sin_wave, Gosu::Color::BLUE)
         @font = Gosu::Font.new(32)
         @update_count = 0
         @pause = false
@@ -57,46 +57,17 @@ def create_atan_wave
     data
 end
 
-def create_sin_wave(factor2, color)
+def create_sin_wave
+    data = []
     delta_x = 0.05
     x = 0
-    first_y = (Math.cos(0) + 1) / factor2
-    y_offset = 1 - first_y
-    while x < DEG_180
-        @data << Point.new(x, ((Math.cos(x * 2) + 1) / factor2) + y_offset, color)
+    while x < SimplePlot::DEG_180
+        data << SimplePlot::DataPoint.new(x, Math.sin(x))
         x = x + delta_x 
     end
+    data
 end
 
-def latest_test 
-    x = 0
-    delta_x = 0.01
-    while x < DEG_90
-        #cos_to_use = (DEG_90 - x).abs
-        #factor2 = scale(x, DEG_90, 7) + 2 
-        #factor2 = scale(x, DEG_90, 5) + 2
-        #@data << Point.new(x, (Math.cos(cos_to_use * 1.5)) + 0.76)
-        @data << Point.new(x, Math.atan(x * 3) * 0.694)
-        @data << Point.new(x, Math.atan(x * 2) * 0.694, Gosu::Color::YELLOW)
-        @data << Point.new(x, Math.atan(x * 1.5) * 0.694, Gosu::Color::RED)
-        @data << Point.new(x, Math.atan(x) * 0.694, Gosu::Color::CYAN)
-        @data << Point.new(x, Math.atan(x / 2), Gosu::Color::GRAY)
-        @data << Point.new(x, Math.atan(x) / 2, Gosu::Color::WHITE)
-
-        x = x + delta_x 
-    end
-end
-
-
-def calc_x_y_line
-    @data = []
-    local_x = @left_x
-    while local_x < @right_x
-        local_y = @y_offset + (@slope * local_x)
-        @data << Point.new(local_x, local_y, Gosu::Color::RED)
-        local_x = local_x + 0.05
-    end
-end
 
 ########################################
 # x, y line plotting                   #

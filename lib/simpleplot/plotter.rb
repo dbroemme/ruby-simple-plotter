@@ -35,7 +35,6 @@ module SimplePlot
         attr_accessor :widget_width
         attr_accessor :widget_height
         attr_accessor :axis_labels_color
-        attr_accessor :grid_line_color
         attr_accessor :zero_line_color
         attr_accessor :cursor_line_color
         attr_accessor :data_point_size 
@@ -50,11 +49,11 @@ module SimplePlot
 
             # The data is a number of named data sets
             @data_hash = {}
+            @color_hash = {}
             # TODO populate this in update and the just iterate through in draw
             @widgets = []
 
             @axis_labels_color = Gosu::Color::CYAN
-            @grid_line_color = Gosu::Color::GRAY
             @zero_line_color = Gosu::Color::BLUE
             @cursor_line_color = Gosu::Color::GREEN
             @data_point_size = 4
@@ -64,10 +63,23 @@ module SimplePlot
             @margin_size = 200
             @window_width = width 
             @window_height = height
+
+            @plot = Plot.new(x_pixel_to_screen(@margin_size), y_pixel_to_screen(0),
+                             graph_width, graph_height) 
+            @axis_lines = AxisLines.new(x_pixel_to_screen(@margin_size), y_pixel_to_screen(0), graph_width, graph_height, @axis_labels_color)
+            @axis_labels = []
         end
 
-        def add_data(name, data) 
+        def add_data(name, data, color = Gosu::Color::GREEN) 
+            @color_hash[name] = color
             @data_hash[name] = data 
+            calculate_axis_labels(true)
+
+            @data_hash.keys.each do |key|
+                data = @data_hash[key]
+                color = @color_hash[key]
+                @plot.add_data(key, data, color)
+            end
         end
 
         def widget_width 
@@ -135,51 +147,33 @@ module SimplePlot
             @y_axis_labels << (@top_y - (@y_range * 0.5)).round(2)
             @y_axis_labels << (@top_y - (@y_range * 0.75)).round(2)
             @y_axis_labels << @bottom_y.round(2)
-        end 
 
-        def render(width, height, update_count)
-            axis_lines = AxisLines.new(x_pixel_to_screen(@margin_size), y_pixel_to_screen(0), graph_width, graph_height, @axis_labels_color)
-            axis_lines.draw 
-
+            @axis_labels = []
             y = 0
             @y_axis_labels.each do |label|
-                val = VerticalAxisLabel.new(x_pixel_to_screen(@margin_size),
-                                            y_pixel_to_screen(y),
-                                            label, @font, @axis_labels_color) 
-                val.draw
+                @axis_labels << VerticalAxisLabel.new(x_pixel_to_screen(@margin_size),
+                                                      y_pixel_to_screen(y),
+                                                      label, @font, @axis_labels_color) 
                 y = y + 100
             end
 
             x = @margin_size
             @x_axis_labels.each do |label|
-                val = HorizontalAxisLabel.new(x_pixel_to_screen(x),
-                                              y_pixel_to_screen(graph_height),
-                                              label, @font, @axis_labels_color) 
-                val.draw
+                @axis_labels <<  HorizontalAxisLabel.new(x_pixel_to_screen(x),
+                                                         y_pixel_to_screen(graph_height),
+                                                         label, @font, @axis_labels_color)
                 x = x + 150
             end
 
-            # Draw the data points
-            plot = Plot.new(x_pixel_to_screen(@margin_size), y_pixel_to_screen(0),
-                            graph_width, graph_height) 
-            plot.set_range(@left_x, @right_x, @bottom_y, @top_y) 
-            @data_hash.keys.each do |key|
-                data = @data_hash[key]
-                plot.add_data(data, Gosu::Color::GREEN)
-            end
-            plot.draw
+            @plot.set_range(@left_x, @right_x, @bottom_y, @top_y) 
+        end 
 
-            # Optionally draw the line connecting data points
-            # TODO this is not working since we refactored
-            #if @data.length > 1 and @display_lines
-            #    @data.inject(@data[0]) do |last, the_next|
-            #        if the_next.pixel_x and the_next.pixel_y and last.pixel_x and last.pixel_y
-            #            Gosu::draw_line last.pixel_x, last.pixel_y, last.color,
-            #                    the_next.pixel_x, the_next.pixel_y, last.color, 2
-            #            the_next
-            #        end
-            #    end
-            #end
+        def render(width, height, update_count)
+            @axis_lines.draw 
+            @axis_labels.each do |label|
+                label.draw 
+            end
+            @plot.draw
         end
 
         def draw_cursor_lines(width, height, mouse_x, mouse_y)
@@ -199,9 +193,9 @@ module SimplePlot
 
         def button_down id, mouse_x, mouse_y
             if id == Gosu::KbG 
-                @display_grid = !@display_grid
+                @plot.display_grid = !@plot.display_grid
             elsif id == Gosu::KbL
-                @display_lines = !@display_lines
+                @plot.display_lines = !@plot.display_lines
             elsif id == Gosu::KbF
                 @data_point_size = @data_point_size + 2
             elsif id == Gosu::KbD

@@ -22,6 +22,10 @@ module SimplePlot
             @children << child 
         end
 
+        def clear_children 
+            @children = [] 
+        end
+
         def draw 
             if @visible 
                 #puts "About to render #{self.class.name}"
@@ -36,8 +40,8 @@ module SimplePlot
     class PlotPoint < Widget
         attr_accessor :data_point_size 
 
-        def initialize(x, y, size = 4, color = Gosu::Color::GREEN) 
-            super x, y, color 
+        def initialize(x, y, color = Gosu::Color::GREEN, size = 4) 
+            super(x, y, color) 
             @data_point_size = size
             @half_size = @data_point_size / 2
         end
@@ -124,12 +128,16 @@ module SimplePlot
         attr_accessor :x_range
         attr_accessor :y_range
         attr_accessor :display_grid
+        attr_accessor :display_lines
 
         def initialize(x, y, width, height) 
             super x, y, color 
             @width = width 
             @height = height
             @display_grid = false
+            @display_lines = true
+            @points_hash = {}
+            @grid_line_color = Gosu::Color::GRAY
         end
 
         def set_range(l, r, b, t) 
@@ -149,11 +157,13 @@ module SimplePlot
             point.x >= @left_x and point.x <= @right_x and point.y >= @bottom_y and point.y <= @top_y
         end 
 
-        def add_data(data_points, color)
+        def add_data(name, data_points, color)
             if range_set?
+                # TODO This won't work, it only supports one data set being plotted at a time
+                @points_hash[name] = []
                 data_points.each do |point|
                     if is_on_screen(point) 
-                        add_child PlotPoint.new(draw_x(point.x), draw_y(point.y))
+                        @points_hash[name] << PlotPoint.new(draw_x(point.x), draw_y(point.y), color)
                     end
                 end
             else
@@ -188,44 +198,65 @@ module SimplePlot
         end 
 
         def render
-            # This children are the points, so nothing to do here
-        end
-
-        def display_grid
-            if @display_grid 
-                grid_widgets = []
-
-                grid_x = @left_x
-                grid_y = @bottom_y + 1
-                while grid_y < @top_y
-                    dx = draw_x(grid_x)
-                    dy = draw_y(grid_y)
-                    last_x = draw_x(@right_x)
-                    color = @grid_line_color
-                    if grid_y == 0 and grid_y != @bottom_y.to_i
-                        color = @zero_line_color
-                    end
-                    grid_widgets << Line.new(dx, dy, last_x, dy, color) 
-                    grid_y = grid_y + 1
-                end
-                grid_x = @left_x + 1
-                grid_y = @bottom_y
-                while grid_x < @right_x
-                    dx = draw_x(grid_x)
-                    dy = draw_y(grid_y)
-                    last_y = draw_y(@top_y)
-                    color = @grid_line_color
-                    if grid_x == 0 and grid_x != @left_x.to_i
-                        color = @zero_line_color 
-                    end
-                    grid_widgets << Line.new(dx, dy, dx, last_y, color) 
-                    grid_x = grid_x + 1
-                end
-
-                grid_widgets.each do |gw| 
-                    gw.draw 
+            @points_hash.keys.each do |key|
+                point_set = @points_hash[key]
+                point_set.each do |point| 
+                    point.draw 
+                end 
+                if @display_lines 
+                    display_lines_for_point_set(point_set) 
                 end
             end
+            if @display_grid and range_set?
+                display_grid_lines
+            end
+        end
+
+        def display_lines_for_point_set(points) 
+            if points.length > 1
+                points.inject(points[0]) do |last, the_next|
+                    Gosu::draw_line last.x, last.y, last.color,
+                                    the_next.x, the_next.y, last.color, 2
+                    the_next
+                end
+            end
+        end
+
+        def display_grid_lines
+            
+            grid_widgets = []
+
+            grid_x = @left_x
+            grid_y = @bottom_y + 1
+            while grid_y < @top_y
+                dx = draw_x(grid_x)
+                dy = draw_y(grid_y)
+                last_x = draw_x(@right_x)
+                color = @grid_line_color
+                if grid_y == 0 and grid_y != @bottom_y.to_i
+                    color = @zero_line_color
+                end
+                grid_widgets << Line.new(dx, dy, last_x, dy, color) 
+                grid_y = grid_y + 1
+            end
+            grid_x = @left_x + 1
+            grid_y = @bottom_y
+            while grid_x < @right_x
+                dx = draw_x(grid_x)
+                dy = draw_y(grid_y)
+                last_y = draw_y(@top_y)
+                color = @grid_line_color
+                if grid_x == 0 and grid_x != @left_x.to_i
+                    color = @zero_line_color 
+                end
+                grid_widgets << Line.new(dx, dy, dx, last_y, color) 
+                grid_x = grid_x + 1
+            end
+
+            grid_widgets.each do |gw| 
+                gw.draw 
+            end
+
         end
     end 
 end
