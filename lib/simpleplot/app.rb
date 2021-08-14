@@ -11,7 +11,7 @@ class SimplePlotterApp < Gosu::Window
         @widget_start_x = 100
         @widget_start_y = 100
         @plotter = SimplePlot::SimplePlot.new(width, height, @widget_start_x, @widget_start_y)
-        @plotter.data = create_atan_wave
+        @plotter.add_data("atan", create_atan_wave)
         @plotter.calculate_axis_labels
         @font = Gosu::Font.new(32)
         @update_count = 0
@@ -51,7 +51,7 @@ def create_atan_wave
     delta_x = 0.05
     x = 0
     while x < SimplePlot::DEG_180
-        data << SimplePlot::PlotPoint.new(x, Math.atan(x * 3) * 0.694)
+        data << SimplePlot::DataPoint.new(x, Math.atan(x * 3) * 0.694)
         x = x + delta_x 
     end
     data

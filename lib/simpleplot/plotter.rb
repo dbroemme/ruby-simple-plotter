@@ -1,6 +1,6 @@
 require 'gosu'
 require 'date'
-require_relative 'shapes'
+require_relative 'widgets'
 
 module SimplePlot
     VERSION = "0.1.0"
@@ -21,8 +21,17 @@ module SimplePlot
         scaled_max.to_f * pct
     end 
 
+    class DataPoint 
+        attr_accessor :x
+        attr_accessor :y 
+
+        def initialize(x, y) 
+            @x = x 
+            @y = y 
+        end
+    end 
+
     class SimplePlot
-        attr_accessor :data
         attr_accessor :widget_width
         attr_accessor :widget_height
         attr_accessor :axis_labels_color
@@ -39,7 +48,9 @@ module SimplePlot
             @start_x = start_x
             @start_y = start_y
 
-            @data = []
+            # The data is a number of named data sets
+            @data_hash = {}
+            # TODO populate this in update and the just iterate through in draw
             @widgets = []
 
             @axis_labels_color = Gosu::Color::CYAN
@@ -53,6 +64,10 @@ module SimplePlot
             @margin_size = 200
             @window_width = width 
             @window_height = height
+        end
+
+        def add_data(name, data) 
+            @data_hash[name] = data 
         end
 
         def widget_width 
@@ -71,16 +86,6 @@ module SimplePlot
             widget_height - @margin_size
         end
 
-        def x_val_to_pixel(val)
-            x_pct = (@right_x - val) / @x_range 
-            widget_width - (graph_width.to_f * x_pct).round
-        end 
-
-        def y_val_to_pixel(val)
-            y_pct = (@top_y - val) / @y_range 
-            (graph_height.to_f * y_pct).round
-        end
-
         def x_pixel_to_screen(x)
             @start_x + x
         end
@@ -89,14 +94,6 @@ module SimplePlot
             @start_y + y
         end
 
-        def draw_x(x)
-            x_pixel_to_screen(x_val_to_pixel(x)) 
-        end 
-
-        def draw_y(y)
-            y_pixel_to_screen(y_val_to_pixel(y)) 
-        end 
-
         def calculate_axis_labels(adjust_for_data = true, left_x = 0, right_x = 1, bottom_y = 0, top_y = 1)
             @left_x = left_x.to_f
             @right_x = right_x.to_f
@@ -104,19 +101,22 @@ module SimplePlot
             @top_y = top_y.to_f
 
             if adjust_for_data
-                @data.each do |point|
-                    if point.x < @left_x 
-                        @left_x = point.x.floor 
-                    elsif point.x > @right_x 
-                        @right_x = point.x.ceil
-                    end 
+                @data_hash.keys.each do |key|
+                    data = @data_hash[key]
+                    data.each do |point|
+                        if point.x < @left_x 
+                            @left_x = point.x.floor 
+                        elsif point.x > @right_x 
+                            @right_x = point.x.ceil
+                        end 
 
-                    if point.y < @bottom_y 
-                        @bottom_y = point.y.floor 
-                    elsif point.x > @right_x 
-                        @top_y = point.y.ceil
+                        if point.y < @bottom_y 
+                            @bottom_y = point.y.floor 
+                        elsif point.x > @right_x 
+                            @top_y = point.y.ceil
+                        end 
                     end 
-                end 
+                end
             end
 
             @x_range = @right_x - @left_x
@@ -135,10 +135,6 @@ module SimplePlot
             @y_axis_labels << (@top_y - (@y_range * 0.5)).round(2)
             @y_axis_labels << (@top_y - (@y_range * 0.75)).round(2)
             @y_axis_labels << @bottom_y.round(2)
-        end 
-
-        def is_on_screen(point) 
-            point.x >= @left_x and point.x <= @right_x and point.y >= @bottom_y and point.y <= @top_y
         end 
 
         def render(width, height, update_count)
@@ -164,58 +160,26 @@ module SimplePlot
             end
 
             # Draw the data points
-            @data.each do |point|
-                if is_on_screen(point) 
-                    on_screen_point = PlotPoint.new draw_x(point.x), draw_y(point.y)
-                    on_screen_point.draw 
-                end
+            plot = Plot.new(x_pixel_to_screen(@margin_size), y_pixel_to_screen(0),
+                            graph_width, graph_height) 
+            plot.set_range(@left_x, @right_x, @bottom_y, @top_y) 
+            @data_hash.keys.each do |key|
+                data = @data_hash[key]
+                plot.add_data(data, Gosu::Color::GREEN)
             end
+            plot.draw
 
             # Optionally draw the line connecting data points
-            if @data.length > 1 and @display_lines
-                @data.inject(@data[0]) do |last, the_next|
-                    if the_next.pixel_x and the_next.pixel_y and last.pixel_x and last.pixel_y
-                        Gosu::draw_line last.pixel_x, last.pixel_y, last.color,
-                                the_next.pixel_x, the_next.pixel_y, last.color, 2
-                        the_next
-                    end
-                end
-            end
-
-            if @display_grid 
-                grid_widgets = []
-
-                grid_x = @left_x
-                grid_y = @bottom_y + 1
-                while grid_y < @top_y
-                    dx = draw_x(grid_x)
-                    dy = draw_y(grid_y)
-                    last_x = draw_x(@right_x)
-                    color = @grid_line_color
-                    if grid_y == 0 and grid_y != @bottom_y.to_i
-                        color = @zero_line_color
-                    end
-                    grid_widgets << Line.new(dx, dy, last_x, dy, color) 
-                    grid_y = grid_y + 1
-                end
-                grid_x = @left_x + 1
-                grid_y = @bottom_y
-                while grid_x < @right_x
-                    dx = draw_x(grid_x)
-                    dy = draw_y(grid_y)
-                    last_y = draw_y(@top_y)
-                    color = @grid_line_color
-                    if grid_x == 0 and grid_x != @left_x.to_i
-                        color = @zero_line_color 
-                    end
-                    grid_widgets << Line.new(dx, dy, dx, last_y, color) 
-                    grid_x = grid_x + 1
-                end
-
-                grid_widgets.each do |gw| 
-                    gw.draw 
-                end
-            end
+            # TODO this is not working since we refactored
+            #if @data.length > 1 and @display_lines
+            #    @data.inject(@data[0]) do |last, the_next|
+            #        if the_next.pixel_x and the_next.pixel_y and last.pixel_x and last.pixel_y
+            #            Gosu::draw_line last.pixel_x, last.pixel_y, last.color,
+            #                    the_next.pixel_x, the_next.pixel_y, last.color, 2
+            #            the_next
+            #        end
+            #    end
+            #end
         end
 
         def draw_cursor_lines(width, height, mouse_x, mouse_y)
