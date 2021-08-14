@@ -35,8 +35,6 @@ module SimplePlot
         attr_accessor :widget_width
         attr_accessor :widget_height
         attr_accessor :axis_labels_color
-        attr_accessor :zero_line_color
-        attr_accessor :cursor_line_color
         attr_accessor :data_point_size 
         attr_accessor :widgets
 
@@ -47,15 +45,11 @@ module SimplePlot
             @start_x = start_x
             @start_y = start_y
 
-            # The data is a number of named data sets
+            # The data is a number of named data sets, and they each have a color
             @data_hash = {}
             @color_hash = {}
-            # TODO populate this in update and the just iterate through in draw
-            @widgets = []
 
             @axis_labels_color = Gosu::Color::CYAN
-            @zero_line_color = Gosu::Color::BLUE
-            @cursor_line_color = Gosu::Color::GREEN
             @data_point_size = 4
             @font = Gosu::Font.new(32)
             @display_grid = true
@@ -65,10 +59,19 @@ module SimplePlot
             @window_height = height
 
             @plot = Plot.new(x_pixel_to_screen(@margin_size), y_pixel_to_screen(0),
-                             graph_width, graph_height) 
-            @axis_lines = AxisLines.new(x_pixel_to_screen(@margin_size), y_pixel_to_screen(0), graph_width, graph_height, @axis_labels_color)
+                             graph_width, graph_height, @font) 
+            @axis_lines = AxisLines.new(x_pixel_to_screen(@margin_size), y_pixel_to_screen(0),
+                                        graph_width, graph_height, @axis_labels_color)
             @axis_labels = []
         end
+
+        # TODO Define the format   x, name, y     That seems weird format
+        #      Maybe we need to specify the order of these in the input parameters to this method
+        def add_data(name, filename, color = Gosu::Color::GREEN) 
+            new_data_set = [] 
+
+            add_data(name, new_data_set, color)
+        end 
 
         def add_data(name, data, color = Gosu::Color::GREEN) 
             @color_hash[name] = color
@@ -176,19 +179,11 @@ module SimplePlot
             @plot.draw
         end
 
-        def draw_cursor_lines(width, height, mouse_x, mouse_y)
-            Gosu::draw_line mouse_x, y_pixel_to_screen(0), @cursor_line_color, mouse_x, y_pixel_to_screen(399), @cursor_line_color
-            Gosu::draw_line x_pixel_to_screen(201), mouse_y, @cursor_line_color, x_pixel_to_screen(799), mouse_y, @cursor_line_color
-            
-            graph_x = mouse_x - @start_x - @margin_size
-            graph_y = mouse_y - @start_y
-            x_pct = (graph_width - graph_x).to_f / graph_width.to_f
-            x_val = @right_x - (x_pct * @x_range)
-            y_pct = graph_y.to_f / graph_height.to_f
-            y_val = @top_y - (y_pct * @y_range)
+        def draw_cursor_lines(mouse_x, mouse_y)
+            x_val, y_val = @plot.draw_cursor_lines(mouse_x, mouse_y)
 
-            @font.draw_text("#{x_val.round(2).to_s}, #{y_val.round(2).to_s}", x_pixel_to_screen(10), height - 32, 1, 1, 1, Gosu::Color::WHITE) 
-            @font.draw_text("#{mouse_x}, #{mouse_y}", x_pixel_to_screen(400), height - 32, 1, 1, 1, Gosu::Color::WHITE) 
+            @font.draw_text("#{x_val.round(2).to_s}, #{y_val.round(2).to_s}", x_pixel_to_screen(10), y_pixel_to_screen(widget_height) - 32, 1, 1, 1, Gosu::Color::WHITE) 
+            @font.draw_text("#{mouse_x}, #{mouse_y}", x_pixel_to_screen(400), y_pixel_to_screen(widget_height) - 32, 1, 1, 1, Gosu::Color::WHITE) 
         end 
 
         def button_down id, mouse_x, mouse_y

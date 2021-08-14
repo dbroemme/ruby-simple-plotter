@@ -30,7 +30,7 @@ class SimplePlotterApp < Gosu::Window
         @plotter.render(width, height, @update_count)
 
         if is_cursor_on_graph 
-            @plotter.draw_cursor_lines(width, height, mouse_x, mouse_y)
+            @plotter.draw_cursor_lines(mouse_x, mouse_y)
         end 
 
         @font.draw_text("#{width}, #{height}", @widget_start_x + 200, height - 32, 1, 1, 1, Gosu::Color::WHITE) 

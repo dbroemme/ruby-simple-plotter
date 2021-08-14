@@ -130,7 +130,7 @@ module SimplePlot
         attr_accessor :display_grid
         attr_accessor :display_lines
 
-        def initialize(x, y, width, height) 
+        def initialize(x, y, width, height, font) 
             super x, y, color 
             @width = width 
             @height = height
@@ -138,6 +138,9 @@ module SimplePlot
             @display_lines = true
             @points_hash = {}
             @grid_line_color = Gosu::Color::GRAY
+            @cursor_line_color = Gosu::Color::GREEN
+            @zero_line_color = Gosu::Color::BLUE 
+            @font = font
         end
 
         def set_range(l, r, b, t) 
@@ -159,7 +162,6 @@ module SimplePlot
 
         def add_data(name, data_points, color)
             if range_set?
-                # TODO This won't work, it only supports one data set being plotted at a time
                 @points_hash[name] = []
                 data_points.each do |point|
                     if is_on_screen(point) 
@@ -223,7 +225,6 @@ module SimplePlot
         end
 
         def display_grid_lines
-            
             grid_widgets = []
 
             grid_x = @left_x
@@ -256,7 +257,21 @@ module SimplePlot
             grid_widgets.each do |gw| 
                 gw.draw 
             end
-
         end
+
+        def draw_cursor_lines(mouse_x, mouse_y)
+            Gosu::draw_line mouse_x, y_pixel_to_screen(0), @cursor_line_color, mouse_x, y_pixel_to_screen(@height), @cursor_line_color
+            Gosu::draw_line x_pixel_to_screen(0), mouse_y, @cursor_line_color, x_pixel_to_screen(@width), mouse_y, @cursor_line_color
+            
+            graph_x = mouse_x - @x
+            graph_y = mouse_y - @y
+            x_pct = (@width - graph_x).to_f / @width.to_f
+            x_val = @right_x - (x_pct * @x_range)
+            y_pct = graph_y.to_f / @height.to_f
+            y_val = @top_y - (y_pct * @y_range)
+
+            # Return the data values at this point, so the plotter can display them
+            [x_val, y_val]
+        end 
     end 
 end
