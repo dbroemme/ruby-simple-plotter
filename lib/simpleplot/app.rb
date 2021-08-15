@@ -13,16 +13,18 @@ class SimplePlotterApp < Gosu::Window
         @plotter = SimplePlot::SimplePlot.new(800, 600, @widget_start_x, @widget_start_y)
         #@plotter.add_data_set("atan", create_atan_wave)
         #@plotter.add_data_set("sin", create_sin_wave, Gosu::Color::BLUE)
+        #@plotter.add_file_data("./data/diagonal.csv", "n,x,y", {})
         #@plotter.add_file_data("./data/portfolio2.csv", "t,n,y", {"Portfolio" => Gosu::Color::RED})
-        @plotter.add_file_data("./data/prices.csv", "t,n,y",
+        color_map = 
             {"BTC" => Gosu::Color::GREEN,
              "ETH" => Gosu::Color::BLUE,
              "AAVE" => Gosu::Color::WHITE,
              "MATIC" => Gosu::Color::CYAN,
              "ENJ" => Gosu::Color::YELLOW,
              "MANA" => Gosu::Color::FUCHSIA,
-             "DOGE" => Gosu::Color::RED})
-        #@plotter.add_file_data("./data/diagonal.csv", "n,x,y", {})
+             "DOGE" => Gosu::Color::RED}
+        @plotter.add_file_data("./data/prices.csv", "t,n,y", color_map)
+        #@plotter.apply_visible_range
         @font = Gosu::Font.new(32)
         @update_count = 0
         @pause = false

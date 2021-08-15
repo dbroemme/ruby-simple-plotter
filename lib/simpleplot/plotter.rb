@@ -39,6 +39,60 @@ module SimplePlot
             @y_range = @top_y - @bottom_y
             @is_time_based = is_time_based
         end
+
+        def plus(other_range)
+            l = @left_x < other_range.left_x ? @left_x : other_range.left_x
+            r = @right_x > other_range.right_x ? @right_x : other_range.right_x
+            b = @bottom_y < other_range.bottom_y ? @bottom_y : other_range.bottom_y
+            t = @top_y > other_range.top_y ? @top_y : other_range.top_y
+            Range.new(l, r, b, t, (@is_time_based or other_range.is_time_based))
+        end
+
+        def x_ten_percent 
+            @x_range.to_f / 10
+        end 
+
+        def y_ten_percent 
+            @y_range.to_f / 10
+        end 
+
+        def zoom_out 
+            @left_x = @left_x - x_ten_percent
+            @right_x = @right_x + x_ten_percent
+            @bottom_y = @bottom_y - x_ten_percent
+            @top_y = @top_y + x_ten_percent
+            @x_range = @right_x - @left_x
+            @y_range = @top_y - @bottom_y
+        end 
+
+        def zoom_in
+            @left_x = @left_x + x_ten_percent
+            @right_x = @right_x - x_ten_percent
+            @bottom_y = @bottom_y + x_ten_percent
+            @top_y = @top_y - x_ten_percent
+            @x_range = @right_x - @left_x
+            @y_range = @top_y - @bottom_y
+        end 
+
+        def scroll_up 
+            @x_range = @right_x - @left_x
+            @y_range = @top_y - @bottom_y
+        end
+
+        def scroll_down
+            @x_range = @right_x - @left_x
+            @y_range = @top_y - @bottom_y
+        end
+
+        def scroll_right
+            @x_range = @right_x - @left_x
+            @y_range = @top_y - @bottom_y
+        end
+
+        def scroll_left
+            @x_range = @right_x - @left_x
+            @y_range = @top_y - @bottom_y
+        end
     end
 
     class DataSet 
@@ -272,14 +326,16 @@ module SimplePlot
                 data_set.calculate_range
                 @data_set_hash[key] = data_set
             end
+            set_range_as_superset
             calculate_axis_labels
-            update_plot_data_sets  
+            apply_visible_range
         end 
 
         def add_data_set(name, data, color = Gosu::Color::GREEN) 
             @data_set_hash[name] = DataSet.new(name, data, color) 
+            set_range_as_superset 
             calculate_axis_labels
-            update_plot_data_sets            
+            apply_visible_range
         end
 
         def update_plot_data_sets 
@@ -312,10 +368,20 @@ module SimplePlot
             @start_y + y
         end
 
-        def calculate_axis_labels
-            # TODO Be more sophisticated, and use a blend of all the data set ranges
-            @range = @data_set_hash.values.first.range 
+        def set_range_as_superset 
+            wip_range = @data_set_hash.values.first.range 
+            @data_set_hash.values.each do |ds|
+                wip_range = wip_range.plus(ds.range)
+            end
+            @range = wip_range
+        end 
 
+        def apply_visible_range
+            @plot.define_range(@range) 
+            update_plot_data_sets 
+        end
+
+        def calculate_axis_labels
             # TODO based on graph width and height, determine how many labels to show
             @x_axis_labels = []
             if @range.is_time_based
@@ -365,8 +431,6 @@ module SimplePlot
                                                          label, @font, @axis_labels_color)
                 x = x + 150
             end
-
-            @plot.visible_range = @range 
         end 
 
         def render(width, height, update_count)
@@ -397,14 +461,22 @@ module SimplePlot
                 if @data_point_size > 2
                     @data_point_size = @data_point_size - 2
                 end
+            elsif id == Gosu::KB_COMMA
+                @plot.zoom_in
+                calculate_axis_labels
+                update_plot_data_sets  
+            elsif id == Gosu::KB_PERIOD
+                @plot.zoom_out
+                calculate_axis_labels
+                update_plot_data_sets  
             elsif id == Gosu::KbUp
-                calculate_axis_labels(false, @left_x, @right_x, @bottom_y + 1, @top_y + 1)
+                @plot.scroll_up
             elsif id == Gosu::KbDown
-                calculate_axis_labels(false, @left_x, @right_x, @bottom_y - 1, @top_y - 1)
+                @plot.scroll_down
             elsif id == Gosu::KbRight
-                calculate_axis_labels(false, @left_x + 1, @right_x + 1, @bottom_y, @top_y)
+                @plot.scroll_right
             elsif id == Gosu::KbLeft
-                calculate_axis_labels(false, @left_x - 1, @right_x - 1, @bottom_y, @top_y)
+                @plot.scroll_left
             end
         end
     end  

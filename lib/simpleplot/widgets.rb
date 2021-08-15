@@ -138,6 +138,38 @@ module SimplePlot
             @font = font
         end
 
+        def zoom_out 
+            visible_range.zoom_out
+        end 
+
+        def zoom_in
+            visible_range.zoom_in
+        end 
+
+        def scroll_up 
+            visible_range.scroll_up
+        end
+
+        def scroll_down
+            visible_range.scroll_down
+        end
+
+        def scroll_right
+            visible_range.scroll_right
+        end
+
+        def scroll_left
+            visible_range.scroll_left
+        end
+
+        def define_range(range)
+            @visible_range = range
+            @orig_left_x = range.left_x
+            @orig_right_x = range.right_x
+            @orig_bottom_y = range.bottom_y
+            @orig_top_y = range.top_y
+        end 
+
         def range_set?
             not @visible_range.nil?
         end 
