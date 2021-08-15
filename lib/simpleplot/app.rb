@@ -46,6 +46,15 @@ class SimplePlotterApp < Gosu::Window
         end 
 
         @font.draw_text("#{width}, #{height}", @widget_start_x + 600, height - 32, 1, 1, 1, Gosu::Color::WHITE) 
+        if button_down?(Gosu::KbLeft)
+            @plotter.button_down Gosu::KbLeft, mouse_x, mouse_y
+        elsif button_down?(Gosu::KbRight)
+            @plotter.button_down Gosu::KbRight, mouse_x, mouse_y
+        elsif button_down?(Gosu::KbUp)
+            @plotter.button_down Gosu::KbUp, mouse_x, mouse_y
+        elsif button_down?(Gosu::KbDown)
+            @plotter.button_down Gosu::KbDown, mouse_x, mouse_y
+        end
     end 
 
     def is_cursor_on_graph

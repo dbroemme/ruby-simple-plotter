@@ -75,23 +75,27 @@ module SimplePlot
         end 
 
         def scroll_up 
-            @x_range = @right_x - @left_x
+            @bottom_y = @bottom_y + x_ten_percent
+            @top_y = @top_y + x_ten_percent
             @y_range = @top_y - @bottom_y
         end
 
         def scroll_down
-            @x_range = @right_x - @left_x
+            @bottom_y = @bottom_y - x_ten_percent
+            @top_y = @top_y - x_ten_percent
             @y_range = @top_y - @bottom_y
         end
 
         def scroll_right
+            @left_x = @left_x + x_ten_percent
+            @right_x = @right_x + x_ten_percent
             @x_range = @right_x - @left_x
-            @y_range = @top_y - @bottom_y
         end
 
         def scroll_left
+            @left_x = @left_x - x_ten_percent
+            @right_x = @right_x - x_ten_percent
             @x_range = @right_x - @left_x
-            @y_range = @top_y - @bottom_y
         end
     end
 
@@ -471,12 +475,20 @@ module SimplePlot
                 update_plot_data_sets  
             elsif id == Gosu::KbUp
                 @plot.scroll_up
+                calculate_axis_labels
+                update_plot_data_sets  
             elsif id == Gosu::KbDown
                 @plot.scroll_down
+                calculate_axis_labels
+                update_plot_data_sets  
             elsif id == Gosu::KbRight
                 @plot.scroll_right
+                calculate_axis_labels
+                update_plot_data_sets  
             elsif id == Gosu::KbLeft
                 @plot.scroll_left
+                calculate_axis_labels
+                update_plot_data_sets  
             end
         end
     end  
