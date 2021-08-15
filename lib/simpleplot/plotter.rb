@@ -21,6 +21,81 @@ module SimplePlot
         scaled_max.to_f * pct
     end 
 
+    class Range
+        attr_accessor :left_x
+        attr_accessor :right_x
+        attr_accessor :bottom_y
+        attr_accessor :top_y
+        attr_accessor :x_range
+        attr_accessor :y_range
+
+        def initialize(l, r, b, t)
+            @left_x = l 
+            @right_x = r 
+            @bottom_y = b 
+            @top_y = t 
+            @x_range = @right_x - @left_x
+            @y_range = @top_y - @bottom_y
+        end
+    end
+
+    class DataSet 
+        attr_accessor :name
+        attr_accessor :color 
+        attr_accessor :data_points 
+        attr_accessor :is_time_based 
+        attr_accessor :range 
+        attr_accessor :rendered_points 
+
+        def initialize(name, data_points, color, is_time_based = false) 
+            @name = name 
+            @color = color
+            @data_points = data_points
+            @is_time_based = is_time_based
+            clear_rendered_points
+            calculate_range
+        end
+
+        def clear_rendered_points 
+            @rendered_points = [] 
+        end
+
+        def add_rendered_point(point)
+            @rendered_points << point 
+        end
+
+        def update_data(data)
+            @data_points = data
+            calculate_range
+        end 
+
+        def calculate_range
+            left_x = 0.to_f
+            right_x = 1.to_f
+            bottom_y = 0.to_f
+            top_y = 1.to_f
+
+            @data_points.each do |point|
+                if point.x < left_x 
+                    left_x = point.x.floor 
+                elsif point.x > right_x 
+                    right_x = point.x.ceil
+                end 
+
+                if point.y < bottom_y 
+                    bottom_y = point.y.floor 
+                elsif point.y > top_y 
+                    top_y = point.y.ceil
+                end 
+            end 
+
+            x_range = @right_x - @left_x
+            y_range = @top_y - @bottom_y 
+
+            @range = Range.new(left_x, right_x, bottom_y, top_y)
+        end
+    end 
+
     class DataPoint 
         attr_accessor :x
         attr_accessor :y 
@@ -37,6 +112,7 @@ module SimplePlot
         attr_accessor :axis_labels_color
         attr_accessor :data_point_size 
         attr_accessor :widgets
+        attr_accessor :range
 
         def initialize(width, height, start_x = 0, start_y = 0)
             ########################################
@@ -45,9 +121,7 @@ module SimplePlot
             @start_x = start_x
             @start_y = start_y
 
-            # The data is a number of named data sets, and they each have a color
-            @data_hash = {}
-            @color_hash = {}
+            @data_set_hash = {}
 
             @axis_labels_color = Gosu::Color::CYAN
             @data_point_size = 4
@@ -65,23 +139,42 @@ module SimplePlot
             @axis_labels = []
         end
 
+        # TODO Need a way to specify the color for each
+        #      since there can be multiple data sets in one file
         # TODO Define the format   x, name, y     That seems weird format
         #      Maybe we need to specify the order of these in the input parameters to this method
-        def add_data(name, filename, color = Gosu::Color::GREEN) 
-            new_data_set = [] 
+        # 2021-08-12T08:41:16,Portfolio,232070
+        def add_file_data(filename, color = Gosu::Color::GREEN) 
+            new_data_sets = {} 
+            File.readlines(filename).each do |line|
+                line = line.chomp
+                tokens = line.split(",")
+                timestamp = tokens[0]
+                data_set_name = tokens[1]
+                value = tokens[2]
+                # %Y-%m-%dT%H:%M:%S
+                date_time = DateTime.parse(timestamp).to_time
+                
+                data_set = new_data_sets[data_set_name]
+                if data_set.nil? 
+                    data_set = []
+                    new_data_sets[data_set_name] = data_set 
+                end 
+                data_set << DataPoint.new(date_time.to_i, value.to_f)
+            end
 
-            add_data(name, new_data_set, color)
+            new_data_sets.keys.each do |key|
+                data_set = new_data_sets[key]
+                add_data(key, data_set, color) 
+            end
         end 
 
-        def add_data(name, data, color = Gosu::Color::GREEN) 
-            @color_hash[name] = color
-            @data_hash[name] = data 
-            calculate_axis_labels(true)
+        def add_data_set(name, data, color = Gosu::Color::GREEN) 
+            @data_set_hash[name] = DataSet.new(name, data, color) 
+            calculate_axis_labels
 
-            @data_hash.keys.each do |key|
-                data = @data_hash[key]
-                color = @color_hash[key]
-                @plot.add_data(key, data, color)
+            @data_set_hash.values.each do |data_set|
+                @plot.add_data_set(data_set)
             end
         end
 
@@ -109,47 +202,23 @@ module SimplePlot
             @start_y + y
         end
 
-        def calculate_axis_labels(adjust_for_data = true, left_x = 0, right_x = 1, bottom_y = 0, top_y = 1)
-            @left_x = left_x.to_f
-            @right_x = right_x.to_f
-            @bottom_y = bottom_y.to_f
-            @top_y = top_y.to_f
-
-            if adjust_for_data
-                @data_hash.keys.each do |key|
-                    data = @data_hash[key]
-                    data.each do |point|
-                        if point.x < @left_x 
-                            @left_x = point.x.floor 
-                        elsif point.x > @right_x 
-                            @right_x = point.x.ceil
-                        end 
-
-                        if point.y < @bottom_y 
-                            @bottom_y = point.y.floor 
-                        elsif point.x > @right_x 
-                            @top_y = point.y.ceil
-                        end 
-                    end 
-                end
-            end
-
-            @x_range = @right_x - @left_x
-            @y_range = @top_y - @bottom_y
+        def calculate_axis_labels
+            # TODO Be more sophisticated, and use a blend of all the data set ranges
+            @range = @data_set_hash.keys.first.range 
 
             # TODO based on graph width and height, determine how many labels to show
             @x_axis_labels = []
-            @x_axis_labels << @left_x.round(2)
-            @x_axis_labels << (@left_x + (@x_range * 0.25)).round(2)
-            @x_axis_labels << (@left_x + (@x_range * 0.5)).round(2)
-            @x_axis_labels << (@left_x + (@x_range * 0.75)).round(2)
-            @x_axis_labels << @right_x.round(2)
+            @x_axis_labels << @range.left_x.round(2)
+            @x_axis_labels << (@range.left_x + (@range.x_range * 0.25)).round(2)
+            @x_axis_labels << (@range.left_x + (@range.x_range * 0.5)).round(2)
+            @x_axis_labels << (@range.left_x + (@range.x_range * 0.75)).round(2)
+            @x_axis_labels << @range.right_x.round(2)
             @y_axis_labels = []
-            @y_axis_labels << @top_y.round(2)
-            @y_axis_labels << (@top_y - (@y_range * 0.25)).round(2)
-            @y_axis_labels << (@top_y - (@y_range * 0.5)).round(2)
-            @y_axis_labels << (@top_y - (@y_range * 0.75)).round(2)
-            @y_axis_labels << @bottom_y.round(2)
+            @y_axis_labels << @range.top_y.round(2)
+            @y_axis_labels << (@range.top_y - (@range.y_range * 0.25)).round(2)
+            @y_axis_labels << (@range.top_y - (@range.y_range * 0.5)).round(2)
+            @y_axis_labels << (@range.top_y - (@range.y_range * 0.75)).round(2)
+            @y_axis_labels << @range.bottom_y.round(2)
 
             @axis_labels = []
             y = 0
@@ -168,7 +237,7 @@ module SimplePlot
                 x = x + 150
             end
 
-            @plot.set_range(@left_x, @right_x, @bottom_y, @top_y) 
+            @plot.range = @range 
         end 
 
         def render(width, height, update_count)
