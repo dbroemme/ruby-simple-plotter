@@ -12,9 +12,9 @@ class SimplePlotterApp < Gosu::Window
         @widget_start_y = 100
         @plotter = SimplePlot::SimplePlot.new(width, height, @widget_start_x, @widget_start_y)
         #@plotter.add_data_set("atan", create_atan_wave)
-        #@plotter.add_data("sin", create_sin_wave, Gosu::Color::BLUE)
-        #@plotter.add_file_data("./data/portfolio2.csv", "t,n,y", {})
-        @plotter.add_file_data("./data/diagonal.csv", "n,x,y", {})
+        #@plotter.add_data_set("sin", create_sin_wave, Gosu::Color::BLUE)
+        @plotter.add_file_data("./data/portfolio2.csv", "t,n,y", {})
+        #@plotter.add_file_data("./data/diagonal.csv", "n,x,y", {})
         @font = Gosu::Font.new(32)
         @update_count = 0
         @pause = false
@@ -39,7 +39,7 @@ class SimplePlotterApp < Gosu::Window
     end 
 
     def is_cursor_on_graph
-        mouse_x > @widget_start_x + 199 and mouse_x < width and mouse_y > @widget_start_y and mouse_y < height 
+        mouse_x > @widget_start_x + 199 and mouse_x < width and mouse_y > @widget_start_y and mouse_y < height - 200 
     end 
 
     def button_down id

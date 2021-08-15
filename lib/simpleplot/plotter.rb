@@ -28,14 +28,16 @@ module SimplePlot
         attr_accessor :top_y
         attr_accessor :x_range
         attr_accessor :y_range
+        attr_accessor :is_time_based
 
-        def initialize(l, r, b, t)
+        def initialize(l, r, b, t, is_time_based = false)
             @left_x = l 
             @right_x = r 
             @bottom_y = b 
             @top_y = t 
             @x_range = @right_x - @left_x
             @y_range = @top_y - @bottom_y
+            @is_time_based = is_time_based
         end
     end
 
@@ -78,19 +80,38 @@ module SimplePlot
             calculate_range
         end 
 
-        def calculate_range
-            left_x = 0.to_f
-            right_x = 1.to_f
-            bottom_y = 0.to_f
-            top_y = 1.to_f
+        def calculate_range(zero_based = false)
+            if zero_based
+                left_x = 0.to_f
+                right_x = 1.to_f
+                bottom_y = 0.to_f
+                top_y = 1.to_f
+            else 
+                left_x = nil
+                right_x = nil
+                bottom_y = nil
+                top_y = nil
+            end
 
             @data_points.each do |point|
+                if left_x.nil?
+                    left_x = point.x.floor 
+                end 
+                if right_x.nil? 
+                    right_x = point.x.ceil
+                end 
                 if point.x < left_x 
                     left_x = point.x.floor 
                 elsif point.x > right_x 
                     right_x = point.x.ceil
                 end 
 
+                if bottom_y.nil? 
+                    bottom_y = point.y.floor 
+                end 
+                if top_y.nil? 
+                    top_y = point.y.ceil
+                end
                 if point.y < bottom_y 
                     bottom_y = point.y.floor 
                 elsif point.y > top_y 
@@ -101,7 +122,31 @@ module SimplePlot
             x_range = right_x - left_x
             y_range = top_y - bottom_y 
 
-            @range = Range.new(left_x, right_x, bottom_y, top_y)
+            if x_range == 0
+                if left_x == 0
+                    extension = 1
+                else
+                    if @is_time_based
+                        extension = 3600
+                    else
+                        extension = left_x * 0.1
+                    end
+                end
+                left_x = left_x - extension
+                right_x = right_x + extension
+            end
+
+            if y_range == 0
+                if bottom_y == 0
+                    extension = 1
+                else
+                    extension = bottom_y * 0.01
+                end
+                bottom_y = bottom_y - extension
+                top_y = top_y + extension
+            end
+
+            @range = Range.new(left_x, right_x, bottom_y, top_y, @is_time_based)
         end
     end 
 
@@ -160,7 +205,7 @@ module SimplePlot
         # t - time  (special case of x)
         # x
         # y
-        # n - name, or you can hardcode the name
+        # n - name (TODO ability to hardcode the name)
         # 2021-08-12T08:41:16,Portfolio,232070
         #  
         def add_file_data(filename, format_str, color_map = {}) 
@@ -200,7 +245,7 @@ module SimplePlot
                 if data_set.is_time_based
                     # %Y-%m-%dT%H:%M:%S
                     date_time = DateTime.parse(t).to_time
-                    puts "Adding time point: #{date_time.to_i}, #{y.to_f}"
+                    puts "Adding time point: #{date_time}    #{date_time.to_i}, #{y.to_f}"
                     data_set.add_data_point(DataPoint.new(date_time.to_i, y.to_f))
                 else
                     puts "Adding data point: #{x.to_f}, #{y.to_f}"
@@ -259,11 +304,31 @@ module SimplePlot
 
             # TODO based on graph width and height, determine how many labels to show
             @x_axis_labels = []
-            @x_axis_labels << @range.left_x.round(2)
-            @x_axis_labels << (@range.left_x + (@range.x_range * 0.25)).round(2)
-            @x_axis_labels << (@range.left_x + (@range.x_range * 0.5)).round(2)
-            @x_axis_labels << (@range.left_x + (@range.x_range * 0.75)).round(2)
-            @x_axis_labels << @range.right_x.round(2)
+            if @range.is_time_based
+                time_values = []
+                time_values << Time.at(@range.left_x)
+                time_values << Time.at(@range.left_x + (@range.x_range * 0.25))
+                time_values << Time.at(@range.left_x + (@range.x_range * 0.5))
+                time_values << Time.at(@range.left_x + (@range.x_range * 0.75))
+                time_values << Time.at(@range.right_x)
+                date_format_str = "%Y-%m-%d %H:%M:%S"
+                # 3600 min
+                # 86400 day
+                if @range.x_range < 86400
+                    date_format_str = "%H:%M:%S"
+                else 
+                    date_format_str = "%Y-%m-%d"
+                end
+                time_values.each do |t|
+                    @x_axis_labels << t.strftime(date_format_str)
+                end
+            else 
+                @x_axis_labels << @range.left_x.round(2)
+                @x_axis_labels << (@range.left_x + (@range.x_range * 0.25)).round(2)
+                @x_axis_labels << (@range.left_x + (@range.x_range * 0.5)).round(2)
+                @x_axis_labels << (@range.left_x + (@range.x_range * 0.75)).round(2)
+                @x_axis_labels << @range.right_x.round(2)
+            end
             @y_axis_labels = []
             @y_axis_labels << @range.top_y.round(2)
             @y_axis_labels << (@range.top_y - (@range.y_range * 0.25)).round(2)
@@ -312,8 +377,10 @@ module SimplePlot
             elsif id == Gosu::KbL
                 @plot.display_lines = !@plot.display_lines
             elsif id == Gosu::KbF
+                # TODO need to adjust the plot widget
                 @data_point_size = @data_point_size + 2
             elsif id == Gosu::KbD
+                # TODO need to adjust the plot widget
                 if @data_point_size > 2
                     @data_point_size = @data_point_size - 2
                 end

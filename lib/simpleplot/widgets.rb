@@ -152,6 +152,8 @@ module SimplePlot
                 data_set.clear_rendered_points
                 data_set.data_points.each do |point|
                     if is_on_screen(point) 
+                        puts "Adding render point at x #{point.x}, #{Time.at(point.x)}"
+                        puts "Visible range: #{Time.at(@visible_range.left_x)}  #{Time.at(@visible_range.right_x)}"
                         data_set.add_rendered_point PlotPoint.new(draw_x(point.x), draw_y(point.y), data_set.color)
                     end
                 end
@@ -161,12 +163,12 @@ module SimplePlot
         end 
 
         def x_val_to_pixel(val)
-            x_pct = (@visible_range.right_x - val) / @visible_range.x_range 
+            x_pct = (@visible_range.right_x - val).to_f / @visible_range.x_range 
             @width - (@width.to_f * x_pct).round
         end 
 
         def y_val_to_pixel(val)
-            y_pct = (@visible_range.top_y - val) / @visible_range.y_range 
+            y_pct = (@visible_range.top_y - val).to_f / @visible_range.y_range 
             (@height.to_f * y_pct).round
         end
 
@@ -212,6 +214,10 @@ module SimplePlot
         end
 
         def display_grid_lines
+            # TODO this is broken. With axis 0-2, 0-4, it was only drawing
+            # lines on the edges
+            # also, it doesn't work for large values because the increment is 1
+            # we can't draw hundreds of thousands of lines
             grid_widgets = []
 
             grid_x = @visible_range.left_x
