@@ -89,8 +89,8 @@ module SimplePlot
                 end 
             end 
 
-            x_range = @right_x - @left_x
-            y_range = @top_y - @bottom_y 
+            x_range = right_x - left_x
+            y_range = top_y - bottom_y 
 
             @range = Range.new(left_x, right_x, bottom_y, top_y)
         end
@@ -204,7 +204,7 @@ module SimplePlot
 
         def calculate_axis_labels
             # TODO Be more sophisticated, and use a blend of all the data set ranges
-            @range = @data_set_hash.keys.first.range 
+            @range = @data_set_hash.values.first.range 
 
             # TODO based on graph width and height, determine how many labels to show
             @x_axis_labels = []
@@ -237,7 +237,7 @@ module SimplePlot
                 x = x + 150
             end
 
-            @plot.range = @range 
+            @plot.visible_range = @range 
         end 
 
         def render(width, height, update_count)

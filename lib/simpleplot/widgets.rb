@@ -143,7 +143,7 @@ module SimplePlot
         end 
 
         def is_on_screen(point) 
-            point.x >= @left_x and point.x <= @right_x and point.y >= @bottom_y and point.y <= @top_y
+            point.x >= @visible_range.left_x and point.x <= @visible_range.right_x and point.y >= @visible_range.bottom_y and point.y <= @visible_range.top_y
         end 
 
         def add_data_set(data_set)
@@ -152,7 +152,7 @@ module SimplePlot
                 data_set.clear_rendered_points
                 data_set.data_points.each do |point|
                     if is_on_screen(point) 
-                        data_set.add_rendered_point PlotPoint.new(draw_x(point.x), draw_y(point.y), color)
+                        data_set.add_rendered_point PlotPoint.new(draw_x(point.x), draw_y(point.y), data_set.color)
                     end
                 end
             else
@@ -161,12 +161,12 @@ module SimplePlot
         end 
 
         def x_val_to_pixel(val)
-            x_pct = (@range.right_x - val) / @range.x_range 
+            x_pct = (@visible_range.right_x - val) / @visible_range.x_range 
             @width - (@width.to_f * x_pct).round
         end 
 
         def y_val_to_pixel(val)
-            y_pct = (@range.top_y - val) / @range.y_range 
+            y_pct = (@visible_range.top_y - val) / @visible_range.y_range 
             (@height.to_f * y_pct).round
         end
 
@@ -214,27 +214,27 @@ module SimplePlot
         def display_grid_lines
             grid_widgets = []
 
-            grid_x = @range.left_x
-            grid_y = @range.bottom_y + 1
-            while grid_y < @range.top_y
+            grid_x = @visible_range.left_x
+            grid_y = @visible_range.bottom_y + 1
+            while grid_y < @visible_range.top_y
                 dx = draw_x(grid_x)
                 dy = draw_y(grid_y)
-                last_x = draw_x(@range.right_x)
+                last_x = draw_x(@visible_range.right_x)
                 color = @grid_line_color
-                if grid_y == 0 and grid_y != @range.bottom_y.to_i
+                if grid_y == 0 and grid_y != @visible_range.bottom_y.to_i
                     color = @zero_line_color
                 end
                 grid_widgets << Line.new(dx, dy, last_x, dy, color) 
                 grid_y = grid_y + 1
             end
-            grid_x = @range.left_x + 1
-            grid_y = @range.bottom_y
-            while grid_x < @range.right_x
+            grid_x = @visible_range.left_x + 1
+            grid_y = @visible_range.bottom_y
+            while grid_x < @visible_range.right_x
                 dx = draw_x(grid_x)
                 dy = draw_y(grid_y)
-                last_y = draw_y(@range.top_y)
+                last_y = draw_y(@visible_range.top_y)
                 color = @grid_line_color
-                if grid_x == 0 and grid_x != @range.left_x.to_i
+                if grid_x == 0 and grid_x != @visible_range.left_x.to_i
                     color = @zero_line_color 
                 end
                 grid_widgets << Line.new(dx, dy, dx, last_y, color) 
@@ -253,9 +253,9 @@ module SimplePlot
             graph_x = mouse_x - @x
             graph_y = mouse_y - @y
             x_pct = (@width - graph_x).to_f / @width.to_f
-            x_val = @range.right_x - (x_pct * @range.x_range)
+            x_val = @visible_range.right_x - (x_pct * @visible_range.x_range)
             y_pct = graph_y.to_f / @height.to_f
-            y_val = @range.top_y - (y_pct * @range.y_range)
+            y_val = @visible_range.top_y - (y_pct * @visible_range.y_range)
 
             # Return the data values at this point, so the plotter can display them
             [x_val, y_val]
