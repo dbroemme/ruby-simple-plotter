@@ -38,6 +38,13 @@ module SimplePlot
             @x_range = @right_x - @left_x
             @y_range = @top_y - @bottom_y
             @is_time_based = is_time_based
+
+            @orig_left_x = @left_x
+            @orig_right_x = @right_x
+            @orig_bottom_y = @bottom_y
+            @orig_top_y = @top_y
+            @orig_range_x = @x_range
+            @orig_range_y = @y_range
         end
 
         def plus(other_range)
@@ -56,20 +63,17 @@ module SimplePlot
             @y_range.to_f / 10
         end 
 
-        def zoom_out 
-            @left_x = @left_x - x_ten_percent
-            @right_x = @right_x + x_ten_percent
-            @bottom_y = @bottom_y - x_ten_percent
-            @top_y = @top_y + x_ten_percent
-            @x_range = @right_x - @left_x
-            @y_range = @top_y - @bottom_y
-        end 
+        def scale(zoom_level)
+            x_mid_point = @orig_left_x + (@orig_range_x.to_f / 2)
+            x_extension = (@orig_range_x.to_f * zoom_level) / 2
+            @left_x = x_mid_point - x_extension
+            @right_x = x_mid_point + x_extension
 
-        def zoom_in
-            @left_x = @left_x + x_ten_percent
-            @right_x = @right_x - x_ten_percent
-            @bottom_y = @bottom_y + x_ten_percent
-            @top_y = @top_y - x_ten_percent
+            y_mid_point = @orig_bottom_y + (@orig_range_y.to_f / 2)
+            y_extension = (@orig_range_y.to_f * zoom_level) / 2
+            @bottom_y = y_mid_point - y_extension
+            @top_y = y_mid_point + y_extension
+
             @x_range = @right_x - @left_x
             @y_range = @top_y - @bottom_y
         end 
@@ -458,9 +462,9 @@ module SimplePlot
             elsif id == Gosu::KbL
                 @plot.display_lines = !@plot.display_lines
             elsif id == Gosu::KbF
-                @plot.increase_size
+                @plot.increase_data_point_size
             elsif id == Gosu::KbD
-                @plot.decrease_size
+                @plot.decrease_data_point_size
             elsif id == Gosu::KB_COMMA
                 @plot.zoom_in
                 calculate_axis_labels

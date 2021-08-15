@@ -134,6 +134,7 @@ module SimplePlot
         attr_accessor :visible_range
         attr_accessor :display_grid
         attr_accessor :display_lines
+        attr_accessor :zoom_level
 
         def initialize(x, y, width, height, font) 
             super x, y, color 
@@ -146,9 +147,10 @@ module SimplePlot
             @cursor_line_color = Gosu::Color::GREEN
             @zero_line_color = Gosu::Color::BLUE 
             @font = font
+            @zoom_level = 1
         end
 
-        def increase_size 
+        def increase_data_point_size 
             @data_set_hash.keys.each do |key|
                 data_set = @data_set_hash[key]
                 data_set.rendered_points.each do |point| 
@@ -157,7 +159,7 @@ module SimplePlot
             end
         end 
 
-        def decrease_size 
+        def decrease_data_point_size 
             @data_set_hash.keys.each do |key|
                 data_set = @data_set_hash[key]
                 data_set.rendered_points.each do |point| 
@@ -167,11 +169,15 @@ module SimplePlot
         end
 
         def zoom_out 
-            visible_range.zoom_out
+            @zoom_level = @zoom_level + 0.1
+            visible_range.scale(@zoom_level)
         end 
 
         def zoom_in
-            visible_range.zoom_in
+            if @zoom_level > 0.11
+                @zoom_level = @zoom_level - 0.1
+            end
+            visible_range.scale(@zoom_level)
         end 
 
         def scroll_up 
@@ -192,10 +198,7 @@ module SimplePlot
 
         def define_range(range)
             @visible_range = range
-            @orig_left_x = range.left_x
-            @orig_right_x = range.right_x
-            @orig_bottom_y = range.bottom_y
-            @orig_top_y = range.top_y
+            @zoom_level = 1
         end 
 
         def range_set?
