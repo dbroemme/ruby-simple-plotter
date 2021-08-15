@@ -122,6 +122,7 @@ module SimplePlot
             x_range = right_x - left_x
             y_range = top_y - bottom_y 
 
+            extension = 0
             if x_range == 0
                 if left_x == 0
                     extension = 1
@@ -132,19 +133,32 @@ module SimplePlot
                         extension = left_x * 0.1
                     end
                 end
-                left_x = left_x - extension
-                right_x = right_x + extension
+            else 
+                if @is_time_based
+                    if x_range < 86400 
+                        extension = 60
+                    else 
+                        extension = 500
+                    end
+                else
+                    extension = left_x * 0.1
+                end
             end
+            left_x = left_x - extension
+            right_x = right_x + extension
 
+            extension = 0
             if y_range == 0
                 if bottom_y == 0
                     extension = 1
                 else
                     extension = bottom_y * 0.01
                 end
-                bottom_y = bottom_y - extension
-                top_y = top_y + extension
+            else 
+                extension = bottom_y * 0.1
             end
+            bottom_y = bottom_y - extension
+            top_y = top_y + extension
 
             @range = Range.new(left_x, right_x, bottom_y, top_y, @is_time_based)
         end
@@ -275,11 +289,11 @@ module SimplePlot
         end
 
         def widget_width 
-            @window_width - @start_x
+            @window_width
         end 
 
         def widget_height
-            @window_height - @start_y
+            @window_height
         end 
 
         def graph_width 
@@ -312,8 +326,7 @@ module SimplePlot
                 time_values << Time.at(@range.left_x + (@range.x_range * 0.75))
                 time_values << Time.at(@range.right_x)
                 date_format_str = "%Y-%m-%d %H:%M:%S"
-                # 3600 min
-                # 86400 day
+                # 3600 min, 86400 day
                 if @range.x_range < 86400
                     date_format_str = "%H:%M:%S"
                 else 
