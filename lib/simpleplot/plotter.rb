@@ -53,7 +53,16 @@ module SimplePlot
             @data_points = data_points
             @is_time_based = is_time_based
             clear_rendered_points
-            calculate_range
+            if data_points
+                calculate_range
+            end
+        end
+
+        def add_data_point(point)
+            if @data_points.nil? 
+                @data_points = []
+            end 
+            @data_points << point
         end
 
         def clear_rendered_points 
@@ -139,40 +148,82 @@ module SimplePlot
             @axis_labels = []
         end
 
-        # TODO Need a way to specify the color for each
-        #      since there can be multiple data sets in one file
-        # TODO Define the format   x, name, y     That seems weird format
-        #      Maybe we need to specify the order of these in the input parameters to this method
+        def translate_format(format_tokens, format_value, values)
+            index = format_tokens.index(format_value)
+            if index.nil? 
+                return nil 
+            end 
+            values[index]
+        end 
+
+        # The format of fields in the csv
+        # t - time  (special case of x)
+        # x
+        # y
+        # n - name, or you can hardcode the name
         # 2021-08-12T08:41:16,Portfolio,232070
-        def add_file_data(filename, color = Gosu::Color::GREEN) 
+        #  
+        def add_file_data(filename, format_str, color_map = {}) 
+            format_tokens = format_str.split(",")
             new_data_sets = {} 
             File.readlines(filename).each do |line|
                 line = line.chomp
                 tokens = line.split(",")
-                timestamp = tokens[0]
-                data_set_name = tokens[1]
-                value = tokens[2]
-                # %Y-%m-%dT%H:%M:%S
-                date_time = DateTime.parse(timestamp).to_time
+                t = translate_format(format_tokens, "t", tokens)
+                n = translate_format(format_tokens, "n", tokens)
+                x = translate_format(format_tokens, "x", tokens)
+                y = translate_format(format_tokens, "y", tokens)
                 
-                data_set = new_data_sets[data_set_name]
-                if data_set.nil? 
-                    data_set = []
-                    new_data_sets[data_set_name] = data_set 
+                if n.nil?
+                    n = "FileDataSet"
                 end 
-                data_set << DataPoint.new(date_time.to_i, value.to_f)
+                c = color_map[n]
+                if c.nil? 
+                    c = Gosu::Color::GREEN 
+                end
+
+                # Determine what type of x we have (time or value)                
+                if t.nil?
+                    is_time_based = false
+                else
+                    is_time_based = true
+                end
+
+                data_set = new_data_sets[n]
+                # Does the data set exist already? If not create
+                if data_set.nil? 
+                    puts "Creating data set #{n}. Time based: #{is_time_based}"
+                    data_set = DataSet.new(n, nil, c, is_time_based) 
+                    new_data_sets[n] = data_set 
+                end 
+                
+                if data_set.is_time_based
+                    # %Y-%m-%dT%H:%M:%S
+                    date_time = DateTime.parse(t).to_time
+                    puts "Adding time point: #{date_time.to_i}, #{y.to_f}"
+                    data_set.add_data_point(DataPoint.new(date_time.to_i, y.to_f))
+                else
+                    puts "Adding data point: #{x.to_f}, #{y.to_f}"
+                    data_set.add_data_point(DataPoint.new(x.to_f, y.to_f))
+                end
             end
 
             new_data_sets.keys.each do |key|
                 data_set = new_data_sets[key]
-                add_data(key, data_set, color) 
+                data_set.calculate_range
+                @data_set_hash[key] = data_set
             end
+            calculate_axis_labels
+            update_plot_data_sets  
         end 
 
         def add_data_set(name, data, color = Gosu::Color::GREEN) 
             @data_set_hash[name] = DataSet.new(name, data, color) 
             calculate_axis_labels
+            update_plot_data_sets            
+        end
 
+        def update_plot_data_sets 
             @data_set_hash.values.each do |data_set|
                 @plot.add_data_set(data_set)
             end
