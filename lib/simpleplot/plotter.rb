@@ -458,13 +458,9 @@ module SimplePlot
             elsif id == Gosu::KbL
                 @plot.display_lines = !@plot.display_lines
             elsif id == Gosu::KbF
-                # TODO need to adjust the plot widget
-                @data_point_size = @data_point_size + 2
+                @plot.increase_size
             elsif id == Gosu::KbD
-                # TODO need to adjust the plot widget
-                if @data_point_size > 2
-                    @data_point_size = @data_point_size - 2
-                end
+                @plot.decrease_size
             elsif id == Gosu::KB_COMMA
                 @plot.zoom_in
                 calculate_axis_labels

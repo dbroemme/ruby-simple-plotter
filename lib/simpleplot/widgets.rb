@@ -43,10 +43,10 @@ module SimplePlot
         def initialize(x, y, color = Gosu::Color::GREEN, size = 4) 
             super(x, y, color) 
             @data_point_size = size
-            @half_size = @data_point_size / 2
         end
 
         def render 
+            @half_size = @data_point_size / 2
             Gosu::draw_rect(@x - @half_size, @y - @half_size,
                             @data_point_size, @data_point_size,
                             @color, 2) 
@@ -54,6 +54,16 @@ module SimplePlot
 
         def to_display 
             "#{@x}, #{@y}"
+        end
+
+        def increase_size 
+            @data_point_size = @data_point_size + 2
+        end 
+
+        def decrease_size 
+            if @data_point_size > 2
+                @data_point_size = @data_point_size - 2
+            end
         end
     end 
 
@@ -136,6 +146,24 @@ module SimplePlot
             @cursor_line_color = Gosu::Color::GREEN
             @zero_line_color = Gosu::Color::BLUE 
             @font = font
+        end
+
+        def increase_size 
+            @data_set_hash.keys.each do |key|
+                data_set = @data_set_hash[key]
+                data_set.rendered_points.each do |point| 
+                    point.increase_size 
+                end
+            end
+        end 
+
+        def decrease_size 
+            @data_set_hash.keys.each do |key|
+                data_set = @data_set_hash[key]
+                data_set.rendered_points.each do |point| 
+                    point.decrease_size 
+                end
+            end
         end
 
         def zoom_out 
