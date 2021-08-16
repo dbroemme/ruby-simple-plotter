@@ -287,7 +287,7 @@ module SimplePlot
                     if is_on_screen(point) 
                         puts "Adding render point at x #{point.x}, #{Time.at(point.x)}"
                         puts "Visible range: #{Time.at(@visible_range.left_x)}  #{Time.at(@visible_range.right_x)}"
-                        data_set.add_rendered_point PlotPoint.new(draw_x(point.x), draw_y(point.y), data_set.color)
+                        data_set.add_rendered_point PlotPoint.new(draw_x(point.x), draw_y(point.y), data_set.color, data_set.data_point_size)
                     end
                 end
             else

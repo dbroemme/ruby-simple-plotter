@@ -111,12 +111,14 @@ module SimplePlot
         attr_accessor :is_time_based 
         attr_accessor :range 
         attr_accessor :rendered_points 
+        attr_accessor :data_point_size
 
-        def initialize(name, data_points, color, is_time_based = false) 
+        def initialize(name, data_points, color, is_time_based = false, data_point_size = 4) 
             @name = name 
             @color = color
             @data_points = data_points
             @is_time_based = is_time_based
+            @data_point_size = data_point_size
             clear_rendered_points
             if data_points
                 calculate_range
@@ -224,6 +226,16 @@ module SimplePlot
             top_y = top_y + extension
 
             @range = Range.new(left_x, right_x, bottom_y, top_y, @is_time_based)
+        end
+
+        def increase_size 
+            @data_point_size = @data_point_size + 2
+        end 
+
+        def decrease_size 
+            if @data_point_size > 2
+                @data_point_size = @data_point_size - 2
+            end
         end
     end 
 
@@ -484,8 +496,14 @@ module SimplePlot
                 elsif id == Gosu::KbL
                     @plot.display_lines = !@plot.display_lines
                 elsif id == Gosu::KbF
+                    @data_set_hash.values.each do |data_set|
+                        data_set.increase_size 
+                    end
                     @plot.increase_data_point_size
                 elsif id == Gosu::KbD
+                    @data_set_hash.values.each do |data_set|
+                        data_set.decrease_size 
+                    end
                     @plot.decrease_data_point_size
                 elsif id == Gosu::KB_COMMA
                     @plot.zoom_in
