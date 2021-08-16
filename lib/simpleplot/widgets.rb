@@ -194,7 +194,7 @@ module SimplePlot
                     x = x + column_widths[c] + 20
                 end
                 i = i + 1
-                y = y + 36
+                y = y + 30
             end
         end
     end
