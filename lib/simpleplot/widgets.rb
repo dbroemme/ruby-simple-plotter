@@ -35,6 +35,13 @@ module SimplePlot
                 end 
             end 
         end
+
+        def draw_border
+            Gosu::draw_line @x, @y, @color, @x + @width, @y, @color, 12
+            Gosu::draw_line @x, @y, @color, @x, @y + @height, @color, 12
+            Gosu::draw_line @x, @y + @height, @color, @x + @width, @y + @height, @color, 12
+            Gosu::draw_line @x + @width, @y, @color, @x + @width, @y + @height, @color, 12
+        end
     end 
 
     class PlotPoint < Widget
@@ -128,6 +135,69 @@ module SimplePlot
             @font.draw_text(@label, @x - (text_pixel_width / 2), @y + 26, 1, 1, 1, @color)
         end
     end 
+
+    class Table < Widget
+        attr_accessor :data_rows 
+        attr_accessor :row_colors
+
+        def initialize(x, y, width, height, color = Gosu::Color::GREEN) 
+            super(x, y, color) 
+            @width = width 
+            @height = height
+            @font = Gosu::Font.new(32)
+            clear_rows            
+        end
+
+        def clear_rows 
+            @data_rows = []
+            @row_colors = []
+        end 
+
+        def add_row(data_row, color)
+            @data_rows << data_row
+            @row_colors << color
+        end
+
+        def render
+            draw_border
+            number_of_rows = @data_rows.size
+            return unless number_of_rows > 0
+
+            column_widths = []
+            number_of_columns = @data_rows[0].size 
+            #puts "number_of_columns: #{number_of_columns}"
+            (0..number_of_columns-1).each do |c| 
+                max_length = 0
+                (0..number_of_rows-1).each do |r|
+                    text_pixel_width = @font.text_width(@data_rows[r][c])
+                    #puts "width #{text_pixel_width} for #{@data_rows[r][c]}"
+                    if text_pixel_width > max_length 
+                        max_length = text_pixel_width
+                    end 
+                end 
+                #puts "column_widths[#{c}] = #{max_length}"
+                column_widths[c] = max_length
+            end
+
+            x = @x + 10
+            (0..number_of_columns-1).each do |c| 
+                x = x + column_widths[c] + 20
+                Gosu::draw_line x, @y, @color, x, @y + @height, @color
+            end 
+
+            y = @y 
+            i = 0
+            @data_rows.each do |row|
+                x = @x + 20
+                (0..number_of_columns-1).each do |c| 
+                    @font.draw_text(row[c], x, y, 1, 1, 1, @row_colors[i])
+                    x = x + column_widths[c] + 20
+                end
+                i = i + 1
+                y = y + 36
+            end
+        end
+    end
 
     class Plot < Widget
         attr_accessor :points

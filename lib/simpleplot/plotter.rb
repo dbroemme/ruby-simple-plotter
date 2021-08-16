@@ -267,6 +267,8 @@ module SimplePlot
             @axis_lines = AxisLines.new(x_pixel_to_screen(@margin_size), y_pixel_to_screen(0),
                                         graph_width, graph_height, @axis_labels_color)
             @axis_labels = []
+            @metadata = Table.new(x_pixel_to_screen(@margin_size), y_pixel_to_screen(graph_height + 64),
+                                  graph_width, 100, Gosu::Color::GRAY)
         end
 
         def translate_format(format_tokens, format_value, values)
@@ -347,8 +349,12 @@ module SimplePlot
         end
 
         def update_plot_data_sets 
+            @metadata.clear_rows
+            i = 1
             @data_set_hash.values.each do |data_set|
                 @plot.add_data_set(data_set)
+                @metadata.add_row([i.to_s, data_set.name], data_set.color)
+                i = i + 1
             end
         end
 
@@ -447,6 +453,7 @@ module SimplePlot
                 label.draw 
             end
             @plot.draw
+            @metadata.draw
         end
 
         def draw_cursor_lines(mouse_x, mouse_y)
