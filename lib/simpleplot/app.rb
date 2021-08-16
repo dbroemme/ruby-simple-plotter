@@ -10,8 +10,9 @@ class SimplePlotterApp < Gosu::Window
         self.caption = "Simple Plot App"
         @widget_start_x = 0
         @widget_start_y = 100
-        @plotter = SimplePlot::SimplePlot.new(800, 600, @widget_start_x, @widget_start_y)
-        #@plotter.add_data_set("atan", create_atan_wave)
+        @plotter = SimplePlot::SimplePlot.new(self, 800, 600, @widget_start_x, @widget_start_y)
+        
+        @plotter.add_data_set("atan", create_atan_wave)
         #@plotter.add_data_set("sin", create_sin_wave, Gosu::Color::BLUE)
         #@plotter.add_file_data("./data/diagonal.csv", "n,x,y", {"line" => Gosu::Color::RED})
         #@plotter.add_file_data("./data/portfolio2.csv", "t,n,y", {"Portfolio" => Gosu::Color::RED})
@@ -25,7 +26,7 @@ class SimplePlotterApp < Gosu::Window
              "DOGE" => Gosu::Color::RED,
              "ADA" => Gosu::Color::GRAY
             }
-        @plotter.add_file_data("./data/prices.csv", "t,n,y", color_map)
+        #@plotter.add_file_data("./data/prices.csv", "t,n,y", color_map)
         @font = Gosu::Font.new(32)
         @update_count = 0
         @pause = false
@@ -63,8 +64,17 @@ class SimplePlotterApp < Gosu::Window
     end 
 
     def button_down id
-        close if id == Gosu::KbEscape or id == Gosu::KbQ
-        @plotter.button_down id, mouse_x, mouse_y
+        if id == Gosu::KbEscape then
+            # Escape key will not be 'eaten' by text fields; use for deselecting.
+            if self.text_input
+                self.text_input = nil
+            else
+                close
+            end
+        else
+            close if id == Gosu::KbQ
+            @plotter.button_down id, mouse_x, mouse_y
+        end
     end
 end
 

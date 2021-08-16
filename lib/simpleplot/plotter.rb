@@ -1,6 +1,7 @@
 require 'gosu'
 require 'date'
 require_relative 'widgets'
+require_relative 'textinput'
 
 module SimplePlot
     VERSION = "0.1.0"
@@ -244,7 +245,9 @@ module SimplePlot
         attr_accessor :widgets
         attr_accessor :range
 
-        def initialize(width, height, start_x = 0, start_y = 0)
+        def initialize(window, width, height, start_x = 0, start_y = 0)
+            @window = window
+            
             ########################################
             # top left origin of widget on screen  #
             ########################################
@@ -269,6 +272,8 @@ module SimplePlot
             @axis_labels = []
             @metadata = Table.new(x_pixel_to_screen(@margin_size), y_pixel_to_screen(graph_height + 64),
                                   graph_width, 100, Gosu::Color::GRAY)
+            @textinput = TextField.new(@window, @font,
+                           x_pixel_to_screen(10), y_pixel_to_screen(graph_height + 64))
         end
 
         def translate_format(format_tokens, format_value, values)
@@ -454,6 +459,7 @@ module SimplePlot
             end
             @plot.draw
             @metadata.draw
+            @textinput.draw
         end
 
         def draw_cursor_lines(mouse_x, mouse_y)
@@ -464,38 +470,48 @@ module SimplePlot
         end 
 
         def button_down id, mouse_x, mouse_y
-            if id == Gosu::KbG 
-                @plot.display_grid = !@plot.display_grid
-            elsif id == Gosu::KbL
-                @plot.display_lines = !@plot.display_lines
-            elsif id == Gosu::KbF
-                @plot.increase_data_point_size
-            elsif id == Gosu::KbD
-                @plot.decrease_data_point_size
-            elsif id == Gosu::KB_COMMA
-                @plot.zoom_in
-                calculate_axis_labels
-                update_plot_data_sets  
-            elsif id == Gosu::KB_PERIOD
-                @plot.zoom_out
-                calculate_axis_labels
-                update_plot_data_sets  
-            elsif id == Gosu::KbUp
-                @plot.scroll_up
-                calculate_axis_labels
-                update_plot_data_sets  
-            elsif id == Gosu::KbDown
-                @plot.scroll_down
-                calculate_axis_labels
-                update_plot_data_sets  
-            elsif id == Gosu::KbRight
-                @plot.scroll_right
-                calculate_axis_labels
-                update_plot_data_sets  
-            elsif id == Gosu::KbLeft
-                @plot.scroll_left
-                calculate_axis_labels
-                update_plot_data_sets  
+            if id == Gosu::MsLeft
+                # Mouse click: Select text field based on mouse position.
+                @window.text_input = [@textinput].find { |tf| tf.under_point?(mouse_x, mouse_y) }
+                # Advanced: Move caret to clicked position
+                @window.text_input.move_caret(mouse_x) unless @window.text_input.nil?
+            end
+            if @window.text_input.nil?
+                if id == Gosu::KbA 
+                    puts "Going to add function: #{@textinput.text}"
+                elsif id == Gosu::KbG 
+                    @plot.display_grid = !@plot.display_grid
+                elsif id == Gosu::KbL
+                    @plot.display_lines = !@plot.display_lines
+                elsif id == Gosu::KbF
+                    @plot.increase_data_point_size
+                elsif id == Gosu::KbD
+                    @plot.decrease_data_point_size
+                elsif id == Gosu::KB_COMMA
+                    @plot.zoom_in
+                    calculate_axis_labels
+                    update_plot_data_sets  
+                elsif id == Gosu::KB_PERIOD
+                    @plot.zoom_out
+                    calculate_axis_labels
+                    update_plot_data_sets  
+                elsif id == Gosu::KbUp
+                    @plot.scroll_up
+                    calculate_axis_labels
+                    update_plot_data_sets  
+                elsif id == Gosu::KbDown
+                    @plot.scroll_down
+                    calculate_axis_labels
+                    update_plot_data_sets  
+                elsif id == Gosu::KbRight
+                    @plot.scroll_right
+                    calculate_axis_labels
+                    update_plot_data_sets  
+                elsif id == Gosu::KbLeft
+                    @plot.scroll_left
+                    calculate_axis_labels
+                    update_plot_data_sets  
+                end
             end
         end
     end  
