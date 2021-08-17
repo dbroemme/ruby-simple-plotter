@@ -30,6 +30,7 @@ Gem::Specification.new do |spec|
 
   spec.add_dependency "gosu", "~> 1.1.0"
   spec.add_dependency "minigl", "~> 2.3.5"
+  spec.add_dependency "tty-option"
 
   # For more information and examples about making a new gem, checkout our
   # guide at: https://bundler.io/guides/creating_gem.html

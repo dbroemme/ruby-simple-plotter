@@ -34,6 +34,10 @@ module SimplePlot
             @y + @height - 1
         end
 
+        def center_x
+            @x + ((right_edge - @x) / 2)
+        end 
+
         def draw 
             if @visible 
                 #puts "About to render #{self.class.name}"
@@ -43,6 +47,12 @@ module SimplePlot
                 end 
             end 
         end
+
+        def render 
+            # base implementation is empty
+            # the draw method invoked by clients stills renders any added children
+            # render is for specific drawing done by the widget
+        end 
 
         def draw_border(color = nil)
             if color.nil? 
@@ -56,6 +66,18 @@ module SimplePlot
 
         def contains_click(mouse_x, mouse_y)
             mouse_x >= @x and mouse_x <= right_edge and mouse_y >= @y and mouse_y <= bottom_edge
+        end
+    end 
+
+    class Text < Widget
+        attr_accessor :str
+        def initialize(str, x, y, font, color = Gosu::Color::WHITE) 
+            super(x, y, color) 
+            @str = str
+            @font = font
+        end
+        def render 
+            @font.draw_text(@str, @x, @y, 10, 1, 1, @color)
         end
     end 
 
@@ -93,12 +115,16 @@ module SimplePlot
         attr_accessor :label
         attr_accessor :is_pressed
 
-        def initialize(label, x, y, color = Gosu::Color::GRAY) 
+        def initialize(label, x, y, width = nil, color = Gosu::Color::GRAY) 
             super(x, y, color) 
             @label = label
             @font = Gosu::Font.new(24)
-            text_pixel_width = @font.text_width(@label)
-            @width = text_pixel_width + 10
+            @text_pixel_width = @font.text_width(@label)
+            if width.nil?
+                @width = @text_pixel_width + 10
+            else 
+                @width = width 
+            end
             @height = 26
             @is_pressed = false
         end
@@ -106,26 +132,33 @@ module SimplePlot
         def render 
             draw_border(Gosu::Color::WHITE)
             Gosu::draw_rect(@x + 1, @y + 1, @width - 2, @height - 2, @color, 2) 
-            @font.draw_text(@label, @x + 5, @y, 10, 1, 1, Gosu::Color::WHITE)
+            # TODO Determine center_x for text
+            text_x = center_x - (@text_pixel_width / 2)
+            @font.draw_text(@label, text_x, @y, 10, 1, 1, Gosu::Color::WHITE)
         end 
     end 
 
     class Document < Widget
         attr_accessor :content
+        attr_accessor :offset_lines
 
-        def initialize(content, x, y, width, height) 
+        def initialize(content, x, y, width, height, offset_lines = 0) 
             super(x, y, Gosu::Color::GRAY) 
             @content = content
             @lines = @content.split("\n")
             @font = Gosu::Font.new(24)
             @width = width
             @height = height
+            @offset_lines = offset_lines
         end
 
         def render 
             draw_border(Gosu::Color::WHITE)
             Gosu::draw_rect(@x + 1, @y + 1, @width - 2, @height - 2, @color, 2) 
             y = @y + 4
+            @offset_lines.times do 
+                y = y + 26
+            end
             @lines.each do |line|
                 @font.draw_text(line, @x + 5, y, 10, 1, 1, Gosu::Color::WHITE)
                 y = y + 26
@@ -135,16 +168,26 @@ module SimplePlot
         end 
     end 
 
-    class InfoBox < Document 
-        def initialize(content, x, y, width, height) 
-            super(content, x, y, width, height) 
+    class InfoBox < Widget 
+        def initialize(title, content, x, y, width, height) 
+            super(x, y) 
+            @width = width
+            @height = height
+            @title = title
+            @title_font = Gosu::Font.new(32)
+            add_child(Text.new(title, x + 5, y + 5, Gosu::Font.new(32)))
+            add_child(Document.new(content, x, y, width, height, 2))
+            @ok_button = Button.new("OK", center_x - 50, bottom_edge - 26, 100, 0xcc2e4053)
+            add_child(@ok_button) 
         end
 
         def button_down id, mouse_x, mouse_y
             if id == Gosu::KbEscape
                 return OverlayWidgetResult.new(true) 
             elsif id == Gosu::MsLeft
-                if contains_click(mouse_x, mouse_y)
+                if @ok_button.contains_click(mouse_x, mouse_y)
+                    return OverlayWidgetResult.new(true) 
+                elsif contains_click(mouse_x, mouse_y)
                     # do nothing here, click was inside infobox
                 else 
                     return OverlayWidgetResult.new(true) 

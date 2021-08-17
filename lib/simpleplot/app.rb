@@ -5,19 +5,42 @@ require_relative 'plotter'
 # serves as a starting point for how you can use it in your own
 # applications.
 class SimplePlotterApp < Gosu::Window
+    attr_accessor :plotter
     def initialize
         super(900, 700, {:resizable => true})
         self.caption = "Simple Plot App"
         @widget_start_x = 0
         @widget_start_y = 100
-        @plotter = SimplePlot::SimplePlot.new(self, 800, 600, @widget_start_x, @widget_start_y)
-        
-        @plotter.add_data_set("atan", create_atan_wave)
-        #@plotter.add_data_set("sin", create_sin_wave, Gosu::Color::BLUE)
-        #@plotter.add_file_data("./data/diagonal.csv", "n,x,y", {"line" => Gosu::Color::RED})
-        #@plotter.add_file_data("./data/portfolio2.csv", "t,n,y", {"Portfolio" => Gosu::Color::RED})
-        color_map = 
-            {"BTC" => Gosu::Color::GREEN,
+        @plotter = SimplePlot::SimplePlot.new(self, 800, 600, @widget_start_x, @widget_start_y) 
+        @font = Gosu::Font.new(32)
+        @update_count = 0
+        @pause = false
+    end 
+
+    def parse_opts_and_run 
+        # Make help the default output if no args are specified
+        if ARGV.length == 0
+            ARGV[0] = "-h"
+        end
+
+        spa = SimplePlotterApp.new
+
+        opts = SimplePlotCommand.new.parse.run
+        if opts[:input_file]
+            file_name = opts[:input_file]
+            file_format = opts[:columns]
+            if file_format.nil?
+                file_format = "x,y"
+            end 
+            spa.plotter.add_file_data(file_name, file_format)
+        elsif opts[:interactive]
+            spa.plotter.range = SimplePlot::Range.new(0, 10, 0, 10)
+            spa.plotter.calculate_axis_labels
+            spa.plotter.apply_visible_range
+        end
+
+        color_map = {
+             "BTC" => Gosu::Color::GREEN,
              "ETH" => Gosu::Color::BLUE,
              "AAVE" => Gosu::Color::WHITE,
              "MATIC" => Gosu::Color::CYAN,
@@ -25,12 +48,11 @@ class SimplePlotterApp < Gosu::Window
              "MANA" => Gosu::Color::FUCHSIA,
              "DOGE" => Gosu::Color::RED,
              "ADA" => Gosu::Color::GRAY
-            }
+        }
         #@plotter.add_file_data("./data/prices.csv", "t,n,y", color_map)
-        @font = Gosu::Font.new(32)
-        @update_count = 0
-        @pause = false
-    end 
+
+        spa.show
+    end
 
     def update 
         if not @pause
@@ -39,8 +61,6 @@ class SimplePlotterApp < Gosu::Window
     end 
     
     def draw 
-        #draw_rect(0, 0, 100, 1000, Gosu::Color::RED)
-        #draw_rect(0, 0, 1000, 100, Gosu::Color::RED)
         @plotter.render(width, height, @update_count)
 
         if is_cursor_on_graph 
@@ -75,36 +95,15 @@ class SimplePlotterApp < Gosu::Window
             end
         else
             close if id == Gosu::KbQ and self.text_input.nil? and @plotter.overlay_widget.nil?
-            @plotter.button_down id, mouse_x, mouse_y
+            result = @plotter.button_down id, mouse_x, mouse_y
+            if not result.nil?
+                if result.close_widget
+                    close 
+                end
+            end
         end
     end
 end
 
-def create_atan_wave
-    data = []
-    delta_x = 0.05
-    x = 0
-    while x < SimplePlot::DEG_180
-        data << SimplePlot::DataPoint.new(x, Math.atan(x * 3) * 0.694)
-        x = x + delta_x 
-    end
-    data
-end
-
-def create_sin_wave
-    data = []
-    delta_x = 0.05
-    x = 0
-    while x < SimplePlot::DEG_180
-        data << SimplePlot::DataPoint.new(x, Math.sin(x))
-        x = x + delta_x 
-    end
-    data
-end
 
 
-########################################
-# x, y line plotting                   #
-########################################
-#@y_offset = 0
-#@slope = -DEG_135

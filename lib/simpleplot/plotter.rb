@@ -4,8 +4,6 @@ require_relative 'widgets'
 require_relative 'textinput'
 
 module SimplePlot
-    VERSION = "0.1.0"
-
     # Common constants that convert degrees to radians
     DEG_0 = 0
     DEG_45 = Math::PI * 0.25
@@ -22,9 +20,16 @@ module SimplePlot
     MODE_HELP = "Help"
     MODE_DEFINE_FUNCTION = "Function"
 
-    def center(begin_val, end_val)
-        begin_val + ((end_val - begin_val) / 2)
-    end 
+    DEFAULT_COLORS = [
+        Gosu::Color::FUCHSIA,
+        Gosu::Color::WHITE,
+        Gosu::Color::YELLOW,
+        Gosu::Color::RED,
+        Gosu::Color::GRAY,
+        Gosu::Color::CYAN,
+        Gosu::Color::BLUE,
+        Gosu::Color::GREEN
+    ]
 
     def scale(val, max_value, scaled_max) 
         pct = val.to_f / max_value.to_f 
@@ -325,7 +330,16 @@ module SimplePlot
                                   graph_width, 100, Gosu::Color::GRAY)
             @function_button = Button.new("Define Function",
                                           x_pixel_to_screen(10),
-                                          y_pixel_to_screen(graph_height + 64))
+                                          y_pixel_to_screen(graph_height + 64),
+                                          180)
+            @help_button = Button.new("Help",
+                                       x_pixel_to_screen(10),
+                                       y_pixel_to_screen(graph_height + 94),
+                                       180)
+            @quit_button = Button.new("Quit",
+                                       x_pixel_to_screen(10),
+                                       y_pixel_to_screen(graph_height + 124),
+                                       180)
             @textinput = TextField.new(@window, @font,
                                        x_pixel_to_screen(@margin_size + 20),
                                        y_pixel_to_screen(300))
@@ -333,9 +347,17 @@ module SimplePlot
 
         def help_content
             <<~HEREDOC
-              Subscription expiring soon!
-              Your free trial will expire in 10 days.
-              Please update your billing information.
+              You can plot multiple data sets at once, either
+              data points from a file or define your own function.
+              Hit the Define Function button to enter a function
+              that will be evaluated in Ruby code.
+              Key Commands:
+                arrow keys      scroll up, down, left, right
+                <, >            zoom in or out
+                d               decrease data point size
+                f               increase data point size
+                g               toggle grid lines
+                l               toggle lines connecting points
             HEREDOC
         end
         
@@ -421,10 +443,13 @@ module SimplePlot
             apply_visible_range
         end
 
-        def add_derived_data_set(function_str, color = Gosu::Color::BLUE) 
+        def add_derived_data_set(function_str, color = nil) 
             parts = function_str.partition("=")
             name = parts[0]
             rhs = parts[2]
+            if color == nil 
+                color = DEFAULT_COLORS[@data_set_hash.size]
+            end
             @data_set_hash[name] = DerivedDataSet.new(name, rhs, @plot.visible_range, color) 
             set_range_as_superset 
             calculate_axis_labels
@@ -539,6 +564,8 @@ module SimplePlot
             @plot.draw
             @metadata.draw
             @function_button.draw 
+            @help_button.draw 
+            @quit_button.draw 
             if @function_button.is_pressed
                 @textinput.draw
             end
@@ -554,12 +581,21 @@ module SimplePlot
             @font.draw_text("#{mouse_x}, #{mouse_y}", x_pixel_to_screen(400), y_pixel_to_screen(widget_height) - 32, 1, 1, 1, Gosu::Color::WHITE) 
         end 
 
+        def display_help 
+            @gui_mode = MODE_HELP
+            @overlay_widget = InfoBox.new("Simple Plot Help", help_content,
+                                          x_pixel_to_screen(10), y_pixel_to_screen(10),
+                                          @window_width - 20, graph_height)
+        end
+
         def button_down id, mouse_x, mouse_y
             if @overlay_widget
                 result = @overlay_widget.button_down id, mouse_x, mouse_y
                 if result.close_widget
                     @overlay_widget = nil 
                 end
+                # TODO Based on the mode or overlay widget, use the response to take action
+                #      In particular defining functions, once we create the form for it
                 return 
             end
 
@@ -573,6 +609,10 @@ module SimplePlot
                     @window.text_input = [@textinput].find { |tf| tf.under_point?(mouse_x, mouse_y) }
                     # Advanced: Move caret to clicked position
                     @window.text_input.move_caret(mouse_x) unless @window.text_input.nil?
+                elsif @help_button.contains_click(mouse_x, mouse_y)
+                    display_help 
+                elsif @quit_button.contains_click(mouse_x, mouse_y)
+                    return OverlayWidgetResult.new(true) 
                 end
             end
             if id == Gosu::KB_RETURN
@@ -585,10 +625,7 @@ module SimplePlot
             end
             if @window.text_input.nil?
                 if id == Gosu::KbH 
-                    @gui_mode = MODE_HELP
-                    @overlay_widget = InfoBox.new(help_content,
-                                                  x_pixel_to_screen(10), y_pixel_to_screen(10),
-                                                  @window_width - 20, graph_height)
+                    display_help
                 elsif id == Gosu::KbG 
                     @plot.display_grid = !@plot.display_grid
                 elsif id == Gosu::KbL
