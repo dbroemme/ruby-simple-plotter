@@ -17,6 +17,11 @@ module SimplePlot
     DEG_315 = Math::PI * 1.75
     DEG_360 = Math::PI * 2
 
+    # GUI Modes
+    MODE_PLOT = "Plot"
+    MODE_HELP = "Help"
+    MODE_DEFINE_FUNCTION = "Function"
+
     def center(begin_val, end_val)
         begin_val + ((end_val - begin_val) / 2)
     end 
@@ -288,10 +293,12 @@ module SimplePlot
         attr_accessor :data_point_size 
         attr_accessor :widgets
         attr_accessor :range
+        attr_accessor :gui_mode
+        attr_accessor :overlay_widget
 
         def initialize(window, width, height, start_x = 0, start_y = 0)
             @window = window
-            
+            @gui_mode = MODE_PLOT
             ########################################
             # top left origin of widget on screen  #
             ########################################
@@ -324,6 +331,14 @@ module SimplePlot
                                        y_pixel_to_screen(300))
         end
 
+        def help_content
+            <<~HEREDOC
+              Subscription expiring soon!
+              Your free trial will expire in 10 days.
+              Please update your billing information.
+            HEREDOC
+        end
+        
         def clear_button 
             @function_button.is_pressed = false 
             @window.text_input = nil
@@ -527,6 +542,9 @@ module SimplePlot
             if @function_button.is_pressed
                 @textinput.draw
             end
+            if @overlay_widget
+                @overlay_widget.draw 
+            end
         end
 
         def draw_cursor_lines(mouse_x, mouse_y)
@@ -537,6 +555,14 @@ module SimplePlot
         end 
 
         def button_down id, mouse_x, mouse_y
+            if @overlay_widget
+                result = @overlay_widget.button_down id, mouse_x, mouse_y
+                if result.close_widget
+                    @overlay_widget = nil 
+                end
+                return 
+            end
+
             if id == Gosu::MsLeft
                 if @function_button.contains_click(mouse_x, mouse_y)
                     @function_button.is_pressed = true 
@@ -552,14 +578,18 @@ module SimplePlot
             if id == Gosu::KB_RETURN
                 puts "Hit return"
                 if @function_button.is_pressed
-                    # TODO create the function
                     puts "Going to add function: #{@textinput.text}"
                     clear_button 
                     add_derived_data_set(@textinput.text) 
                 end
             end
             if @window.text_input.nil?
-                if id == Gosu::KbG 
+                if id == Gosu::KbH 
+                    @gui_mode = MODE_HELP
+                    @overlay_widget = InfoBox.new(help_content,
+                                                  x_pixel_to_screen(10), y_pixel_to_screen(10),
+                                                  @window_width - 20, graph_height)
+                elsif id == Gosu::KbG 
                     @plot.display_grid = !@plot.display_grid
                 elsif id == Gosu::KbL
                     @plot.display_lines = !@plot.display_lines

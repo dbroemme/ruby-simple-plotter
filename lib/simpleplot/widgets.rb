@@ -110,6 +110,58 @@ module SimplePlot
         end 
     end 
 
+    class Document < Widget
+        attr_accessor :content
+
+        def initialize(content, x, y, width, height) 
+            super(x, y, Gosu::Color::GRAY) 
+            @content = content
+            @lines = @content.split("\n")
+            @font = Gosu::Font.new(24)
+            @width = width
+            @height = height
+        end
+
+        def render 
+            draw_border(Gosu::Color::WHITE)
+            Gosu::draw_rect(@x + 1, @y + 1, @width - 2, @height - 2, @color, 2) 
+            y = @y + 4
+            @lines.each do |line|
+                @font.draw_text(line, @x + 5, y, 10, 1, 1, Gosu::Color::WHITE)
+                y = y + 26
+            end
+            #text_pixel_width = @font.text_width(@label)
+            #@width = text_pixel_width + 10
+        end 
+    end 
+
+    class InfoBox < Document 
+        def initialize(content, x, y, width, height) 
+            super(content, x, y, width, height) 
+        end
+
+        def button_down id, mouse_x, mouse_y
+            if id == Gosu::KbEscape
+                return OverlayWidgetResult.new(true) 
+            elsif id == Gosu::MsLeft
+                if contains_click(mouse_x, mouse_y)
+                    # do nothing here, click was inside infobox
+                else 
+                    return OverlayWidgetResult.new(true) 
+                end
+            end
+            OverlayWidgetResult.new(false)
+        end
+    end
+
+    class OverlayWidgetResult 
+        attr_accessor :close_widget
+        attr_accessor :action
+        attr_accessor :form_data
+        def initialize(close_widget = false)
+            @close_widget = close_widget 
+        end
+    end
 
     class AxisLines < Widget
         def initialize(x, y, width, height, color = Gosu::Color::GREEN) 
