@@ -1,10 +1,9 @@
-#require 'rubygems'
 require 'gosu'
 
 class TextField < Gosu::TextInput
   # Some constants that define our appearance.
   INACTIVE_COLOR  = 0xcc666666
-  ACTIVE_COLOR    = 0xccff6666
+  ACTIVE_COLOR    = 0xcc85929e 
   SELECTION_COLOR = 0xcc0000ff
   CARET_COLOR     = 0xffffffff
   PADDING = 5
@@ -18,14 +17,14 @@ class TextField < Gosu::TextInput
     @window, @font, @x, @y = window, font, x, y
     
     # Start with a self-explanatory text in each field.
-    self.text = "Click to define"
+    self.text = ""
   end
   
   # Example filter method. You can truncate the text to employ a length limit (watch out
   # with Ruby 1.8 and UTF-8!), limit the text to certain characters etc.
-  def filter text
-    text.upcase
-  end
+  #def filter text
+  #  text.upcase
+  #end
   
   def draw
     # Depending on whether this is the currently selected input or not, change the
@@ -38,7 +37,7 @@ class TextField < Gosu::TextInput
     @window.draw_quad(x - PADDING,         y - PADDING,          background_color,
                       x + width + PADDING, y - PADDING,          background_color,
                       x - PADDING,         y + height + PADDING, background_color,
-                      x + width + PADDING, y + height + PADDING, background_color, 0)
+                      x + width + PADDING, y + height + PADDING, background_color, 9)
     
     # Calculate the position of the caret and the selection start.
     pos_x = x + @font.text_width(self.text[0...self.caret_pos])
@@ -49,22 +48,26 @@ class TextField < Gosu::TextInput
     @window.draw_quad(sel_x, y,          SELECTION_COLOR,
                       pos_x, y,          SELECTION_COLOR,
                       sel_x, y + height, SELECTION_COLOR,
-                      pos_x, y + height, SELECTION_COLOR, 0)
+                      pos_x, y + height, SELECTION_COLOR, 50)
 
     # Draw the caret; again, only if this is the currently selected field.
     if @window.text_input == self then
       @window.draw_line(pos_x, y,          CARET_COLOR,
-                        pos_x, y + height, CARET_COLOR, 0)
+                        pos_x, y + height, CARET_COLOR, 50)
     end
 
     # Finally, draw the text itself!
-    @font.draw_text(self.text, x, y, 0)
+    @font.draw_text(self.text, x, y, 50)
   end
 
   # This text field grows with the text that's being entered.
   # (Usually one would use clip_to and scroll around on the text field.)
   def width
-    @font.text_width(self.text)
+    text_width = @font.text_width(self.text)
+    if text_width > 400
+      return text_width 
+    end 
+    400
   end
   
   def height
@@ -90,42 +93,3 @@ class TextField < Gosu::TextInput
     self.caret_pos = self.selection_start = self.text.length
   end
 end
-
-class TextInputWindow < Gosu::Window
-  def initialize
-    super(300, 200, false)
-    self.caption = "Text Input Example"
-    
-    font = Gosu::Font.new(self, Gosu::default_font_name, 20)
-    
-    # Set up an array of three text fields.
-    @text_fields = Array.new(3) { |index| TextField.new(self, font, 50, 30 + index * 50) }
-  end
-  
-  def draw
-    @text_fields.each { |tf| tf.draw }
-  end
-  
-  def button_down(id)
-    if id == Gosu::KbTab then
-      # Tab key will not be 'eaten' by text fields; use for switching through
-      # text fields.
-      index = @text_fields.index(self.text_input) || -1
-      self.text_input = @text_fields[(index + 1) % @text_fields.size]
-    elsif id == Gosu::KbEscape then
-      # Escape key will not be 'eaten' by text fields; use for deselecting.
-      if self.text_input then
-        self.text_input = nil
-      else
-        close
-      end
-    elsif id == Gosu::MsLeft then
-      # Mouse click: Select text field based on mouse position.
-      self.text_input = @text_fields.find { |tf| tf.under_point?(mouse_x, mouse_y) }
-      # Advanced: Move caret to clicked position
-      self.text_input.move_caret(mouse_x) unless self.text_input.nil?
-    end
-  end
-end
-
-#TextInputWindow.new.show

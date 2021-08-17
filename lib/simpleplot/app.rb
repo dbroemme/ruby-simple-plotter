@@ -68,11 +68,12 @@ class SimplePlotterApp < Gosu::Window
             # Escape key will not be 'eaten' by text fields; use for deselecting.
             if self.text_input
                 self.text_input = nil
+                @plotter.clear_button
             else
                 close
             end
         else
-            close if id == Gosu::KbQ
+            close if id == Gosu::KbQ and self.text_input.nil?
             @plotter.button_down id, mouse_x, mouse_y
         end
     end

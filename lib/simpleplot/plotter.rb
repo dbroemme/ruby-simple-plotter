@@ -17,6 +17,10 @@ module SimplePlot
     DEG_315 = Math::PI * 1.75
     DEG_360 = Math::PI * 2
 
+    def center(begin_val, end_val)
+        begin_val + ((end_val - begin_val) / 2)
+    end 
+
     def scale(val, max_value, scaled_max) 
         pct = val.to_f / max_value.to_f 
         scaled_max.to_f * pct
@@ -284,9 +288,17 @@ module SimplePlot
             @axis_labels = []
             @metadata = Table.new(x_pixel_to_screen(@margin_size), y_pixel_to_screen(graph_height + 64),
                                   graph_width, 100, Gosu::Color::GRAY)
+            @function_button = Button.new("Define Function",
+                                          x_pixel_to_screen(10),
+                                          y_pixel_to_screen(graph_height + 64))
             @textinput = TextField.new(@window, @font,
-                           x_pixel_to_screen(10), y_pixel_to_screen(graph_height + 64))
+                                       x_pixel_to_screen(@margin_size + 20),
+                                       y_pixel_to_screen(300))
         end
+
+        def clear_button 
+            @function_button.is_pressed = false 
+        end 
 
         def translate_format(format_tokens, format_value, values)
             index = format_tokens.index(format_value)
@@ -471,7 +483,10 @@ module SimplePlot
             end
             @plot.draw
             @metadata.draw
-            @textinput.draw
+            @function_button.draw 
+            if @function_button.is_pressed
+                @textinput.draw
+            end
         end
 
         def draw_cursor_lines(mouse_x, mouse_y)
@@ -483,15 +498,27 @@ module SimplePlot
 
         def button_down id, mouse_x, mouse_y
             if id == Gosu::MsLeft
-                # Mouse click: Select text field based on mouse position.
-                @window.text_input = [@textinput].find { |tf| tf.under_point?(mouse_x, mouse_y) }
-                # Advanced: Move caret to clicked position
-                @window.text_input.move_caret(mouse_x) unless @window.text_input.nil?
+                if @function_button.contains_click(mouse_x, mouse_y)
+                    @function_button.is_pressed = true 
+                    @window.text_input = @textinput
+                    @window.text_input.move_caret(1)
+                elsif @function_button.is_pressed
+                    # Mouse click: Select text field based on mouse position.
+                    @window.text_input = [@textinput].find { |tf| tf.under_point?(mouse_x, mouse_y) }
+                    # Advanced: Move caret to clicked position
+                    @window.text_input.move_caret(mouse_x) unless @window.text_input.nil?
+                end
+            end
+            if id == Gosu::KB_RETURN
+                puts "Hit return"
+                if @function_button.is_pressed
+                    # TODO create the function
+                    puts "Going to add function: #{@textinput.text}"
+                    clear_button 
+                end
             end
             if @window.text_input.nil?
-                if id == Gosu::KbA 
-                    puts "Going to add function: #{@textinput.text}"
-                elsif id == Gosu::KbG 
+                if id == Gosu::KbG 
                     @plot.display_grid = !@plot.display_grid
                 elsif id == Gosu::KbL
                     @plot.display_lines = !@plot.display_lines

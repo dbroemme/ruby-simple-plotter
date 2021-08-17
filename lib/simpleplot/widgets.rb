@@ -26,6 +26,14 @@ module SimplePlot
             @children = [] 
         end
 
+        def right_edge
+            @x + @width - 1
+        end
+        
+        def bottom_edge
+            @y + @height - 1
+        end
+
         def draw 
             if @visible 
                 #puts "About to render #{self.class.name}"
@@ -36,11 +44,18 @@ module SimplePlot
             end 
         end
 
-        def draw_border
-            Gosu::draw_line @x, @y, @color, @x + @width, @y, @color, 12
-            Gosu::draw_line @x, @y, @color, @x, @y + @height, @color, 12
-            Gosu::draw_line @x, @y + @height, @color, @x + @width, @y + @height, @color, 12
-            Gosu::draw_line @x + @width, @y, @color, @x + @width, @y + @height, @color, 12
+        def draw_border(color = nil)
+            if color.nil? 
+                color = @color 
+            end
+            Gosu::draw_line @x, @y, color, right_edge, @y, color, 12
+            Gosu::draw_line @x, @y, color, @x, bottom_edge, color, 12
+            Gosu::draw_line @x,bottom_edge, color, right_edge, bottom_edge, color, 12
+            Gosu::draw_line right_edge, @y, color, right_edge, bottom_edge, color, 12
+        end
+
+        def contains_click(mouse_x, mouse_y)
+            mouse_x >= @x and mouse_x <= right_edge and mouse_y >= @y and mouse_y <= bottom_edge
         end
     end 
 
@@ -73,6 +88,28 @@ module SimplePlot
             end
         end
     end 
+
+    class Button < Widget
+        attr_accessor :label
+        attr_accessor :is_pressed
+
+        def initialize(label, x, y, color = Gosu::Color::GRAY) 
+            super(x, y, color) 
+            @label = label
+            @font = Gosu::Font.new(24)
+            text_pixel_width = @font.text_width(@label)
+            @width = text_pixel_width + 10
+            @height = 26
+            @is_pressed = false
+        end
+
+        def render 
+            draw_border(Gosu::Color::WHITE)
+            Gosu::draw_rect(@x + 1, @y + 1, @width - 2, @height - 2, @color, 2) 
+            @font.draw_text(@label, @x + 5, @y, 10, 1, 1, Gosu::Color::WHITE)
+        end 
+    end 
+
 
     class AxisLines < Widget
         def initialize(x, y, width, height, color = Gosu::Color::GREEN) 
@@ -285,8 +322,8 @@ module SimplePlot
                 data_set.clear_rendered_points
                 data_set.data_points.each do |point|
                     if is_on_screen(point) 
-                        puts "Adding render point at x #{point.x}, #{Time.at(point.x)}"
-                        puts "Visible range: #{Time.at(@visible_range.left_x)}  #{Time.at(@visible_range.right_x)}"
+                        #puts "Adding render point at x #{point.x}, #{Time.at(point.x)}"
+                        #puts "Visible range: #{Time.at(@visible_range.left_x)}  #{Time.at(@visible_range.right_x)}"
                         data_set.add_rendered_point PlotPoint.new(draw_x(point.x), draw_y(point.y), data_set.color, data_set.data_point_size)
                     end
                 end
