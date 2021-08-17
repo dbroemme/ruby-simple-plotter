@@ -306,6 +306,11 @@ module SimplePlot
         def define_range(range)
             @visible_range = range
             @zoom_level = 1
+            @data_set_hash.keys.each do |key|
+                data_set = @data_set_hash[key]
+                puts "Calling derive values on #{key}"
+                data_set.derive_values(range)
+            end
         end 
 
         def range_set?
@@ -320,6 +325,7 @@ module SimplePlot
             if range_set?
                 @data_set_hash[data_set.name] = data_set
                 data_set.clear_rendered_points
+                data_set.derive_values(@visible_range)
                 data_set.data_points.each do |point|
                     if is_on_screen(point) 
                         #puts "Adding render point at x #{point.x}, #{Time.at(point.x)}"

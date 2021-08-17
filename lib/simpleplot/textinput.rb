@@ -17,7 +17,7 @@ class TextField < Gosu::TextInput
     @window, @font, @x, @y = window, font, x, y
     
     # Start with a self-explanatory text in each field.
-    self.text = ""
+    self.text = "d = x + 1"
   end
   
   # Example filter method. You can truncate the text to employ a length limit (watch out

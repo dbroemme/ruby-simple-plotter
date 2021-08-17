@@ -129,6 +129,10 @@ module SimplePlot
             end
         end
 
+        def derive_values(visible_range)
+            # do nothing
+        end 
+
         def add_data_point(point)
             if @data_points.nil? 
                 @data_points = []
@@ -243,6 +247,30 @@ module SimplePlot
         end
     end 
 
+    class DerivedDataSet < DataSet 
+        attr_accessor :function_str 
+
+        def initialize(name, rhs, range, color)
+            super(name, nil, color)
+            @data_points = []
+            @function_str = rhs 
+            @range = range
+        end 
+
+        def derive_values(visible_range)
+            #puts "DerivedDataSet derive_values for range #{visible_range.inspect}"
+            @data_points = []
+            x = visible_range.left_x
+            while x < visible_range.right_x 
+                # TODO this string could include references to other data sets also
+                y = eval(@function_str)
+                x = x + 0.1    # TODO this should be based on range size
+                #puts "#{y} = [#{x}] #{@function_str}"
+                @data_points << DataPoint.new(x, y)
+            end
+        end 
+    end 
+
     class DataPoint 
         attr_accessor :x
         attr_accessor :y 
@@ -298,6 +326,7 @@ module SimplePlot
 
         def clear_button 
             @function_button.is_pressed = false 
+            @window.text_input = nil
         end 
 
         def translate_format(format_tokens, format_value, values)
@@ -374,6 +403,17 @@ module SimplePlot
             @data_set_hash[name] = DataSet.new(name, data, color) 
             set_range_as_superset 
             calculate_axis_labels
+            apply_visible_range
+        end
+
+        def add_derived_data_set(function_str, color = Gosu::Color::BLUE) 
+            parts = function_str.partition("=")
+            name = parts[0]
+            rhs = parts[2]
+            @data_set_hash[name] = DerivedDataSet.new(name, rhs, @plot.visible_range, color) 
+            set_range_as_superset 
+            calculate_axis_labels
+            puts "In add_derived_data_set, about to call apply_visible_range"
             apply_visible_range
         end
 
@@ -515,6 +555,7 @@ module SimplePlot
                     # TODO create the function
                     puts "Going to add function: #{@textinput.text}"
                     clear_button 
+                    add_derived_data_set(@textinput.text) 
                 end
             end
             if @window.text_input.nil?
