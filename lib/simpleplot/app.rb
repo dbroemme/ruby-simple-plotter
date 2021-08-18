@@ -33,23 +33,12 @@ class SimplePlotterApp < Gosu::Window
                 file_format = "x,y"
             end 
             spa.plotter.add_file_data(file_name, file_format)
+
         elsif opts[:interactive]
             spa.plotter.range = SimplePlot::Range.new(0, 10, 0, 10)
             spa.plotter.calculate_axis_labels
             spa.plotter.apply_visible_range
         end
-
-        color_map = {
-             "BTC" => Gosu::Color::GREEN,
-             "ETH" => Gosu::Color::BLUE,
-             "AAVE" => Gosu::Color::WHITE,
-             "MATIC" => Gosu::Color::CYAN,
-             "ENJ" => Gosu::Color::YELLOW,
-             "MANA" => Gosu::Color::FUCHSIA,
-             "DOGE" => Gosu::Color::RED,
-             "ADA" => Gosu::Color::GRAY
-        }
-        #@plotter.add_file_data("./data/prices.csv", "t,n,y", color_map)
 
         spa.show
     end
@@ -68,15 +57,6 @@ class SimplePlotterApp < Gosu::Window
         end 
 
         @font.draw_text("#{width}, #{height}", @widget_start_x + 600, height - 32, 1, 1, 1, Gosu::Color::WHITE) 
-        if button_down?(Gosu::KbLeft)
-            @plotter.button_down Gosu::KbLeft, mouse_x, mouse_y
-        elsif button_down?(Gosu::KbRight)
-            @plotter.button_down Gosu::KbRight, mouse_x, mouse_y
-        elsif button_down?(Gosu::KbUp)
-            @plotter.button_down Gosu::KbUp, mouse_x, mouse_y
-        elsif button_down?(Gosu::KbDown)
-            @plotter.button_down Gosu::KbDown, mouse_x, mouse_y
-        end
     end 
 
     def is_cursor_on_graph

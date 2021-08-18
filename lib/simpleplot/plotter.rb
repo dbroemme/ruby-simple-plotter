@@ -140,7 +140,8 @@ module SimplePlot
         end
 
         def derive_values(visible_range)
-            # do nothing
+            # Base implementation is empty
+            # Explicit data sets do not need to derive data
         end 
 
         def add_data_point(point)
@@ -268,15 +269,13 @@ module SimplePlot
         end 
 
         def derive_values(visible_range)
-            #puts "DerivedDataSet derive_values for range #{visible_range.inspect}"
             @data_points = []
             x = visible_range.left_x
             while x < visible_range.right_x 
-                # TODO this string could include references to other data sets also
                 y = eval(@function_str)
-                x = x + 0.1    # TODO this should be based on range size
                 #puts "#{y} = [#{x}] #{@function_str}"
                 @data_points << DataPoint.new(x, y)
+                x = x + 0.1    # TODO this should be based on range size
             end
         end 
     end 
@@ -453,7 +452,6 @@ module SimplePlot
             @data_set_hash[name] = DerivedDataSet.new(name, rhs, @plot.visible_range, color) 
             set_range_as_superset 
             calculate_axis_labels
-            puts "In add_derived_data_set, about to call apply_visible_range"
             apply_visible_range
         end
 
@@ -612,7 +610,7 @@ module SimplePlot
                 elsif @help_button.contains_click(mouse_x, mouse_y)
                     display_help 
                 elsif @quit_button.contains_click(mouse_x, mouse_y)
-                    return OverlayWidgetResult.new(true) 
+                    return WidgetResult.new(true) 
                 end
             end
             if id == Gosu::KB_RETURN
@@ -666,6 +664,7 @@ module SimplePlot
                     update_plot_data_sets  
                 end
             end
+            nil
         end
     end  
 end

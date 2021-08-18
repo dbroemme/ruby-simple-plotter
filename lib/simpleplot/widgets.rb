@@ -183,21 +183,21 @@ module SimplePlot
 
         def button_down id, mouse_x, mouse_y
             if id == Gosu::KbEscape
-                return OverlayWidgetResult.new(true) 
+                return WidgetResult.new(true) 
             elsif id == Gosu::MsLeft
                 if @ok_button.contains_click(mouse_x, mouse_y)
-                    return OverlayWidgetResult.new(true) 
+                    return WidgetResult.new(true) 
                 elsif contains_click(mouse_x, mouse_y)
                     # do nothing here, click was inside infobox
                 else 
-                    return OverlayWidgetResult.new(true) 
+                    return WidgetResult.new(true) 
                 end
             end
-            OverlayWidgetResult.new(false)
+            WidgetResult.new(false)
         end
     end
 
-    class OverlayWidgetResult 
+    class WidgetResult 
         attr_accessor :close_widget
         attr_accessor :action
         attr_accessor :form_data
