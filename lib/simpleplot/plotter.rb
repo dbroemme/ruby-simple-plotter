@@ -20,15 +20,40 @@ module SimplePlot
     MODE_HELP = "Help"
     MODE_DEFINE_FUNCTION = "Function"
 
+    COLOR_PEACH = Gosu::Color.argb(0xffe6b0aa)
+    COLOR_LIGHT_PURPLE = Gosu::Color.argb(0xffd7bde2)
+    COLOR_LIGHT_BLUE = Gosu::Color.argb(0xffa9cce3)
+    COLOR_LIGHT_GREEN = Gosu::Color.argb(0xffa3e4d7)
+    COLOR_LIGHT_YELLOW = Gosu::Color.argb(0xfff9e79f)
+    COLOR_LIGHT_ORANGE = Gosu::Color.argb(0xffedbb99)
+    COLOR_WHITE = Gosu::Color::WHITE
+    COLOR_OFF_WHITE = Gosu::Color.argb(0xfff8f9f9)
+    COLOR_PINK = Gosu::Color.argb(0xffe6b0aa)
+    COLOR_LIME = Gosu::Color.argb(0xffDAF7A6)
+    COLOR_YELLOW = Gosu::Color.argb(0xffFFC300)
+    COLOR_MAROON = Gosu::Color.argb(0xffC70039)
+    COLOR_GRAY = Gosu::Color::GRAY
+    COLOR_OFF_GRAY = Gosu::Color.argb(0xffa2b3b9)
+    COLOR_LIGHT_BLACK = Gosu::Color.argb(0xff111111)
+    COLOR_LIGHT_RED = Gosu::Color.argb(0xffe6b0aa)
+    COLOR_CYAN = Gosu::Color::CYAN
+    COLOR_BLUE = Gosu::Color::BLUE
+    COLOR_DARK_GRAY = Gosu::Color.argb(0xccf0f3f4)
+
     DEFAULT_COLORS = [
-        Gosu::Color::FUCHSIA,
-        Gosu::Color::WHITE,
-        Gosu::Color::YELLOW,
-        Gosu::Color::RED,
-        Gosu::Color::GRAY,
-        Gosu::Color::CYAN,
-        Gosu::Color::BLUE,
-        Gosu::Color::GREEN
+        COLOR_PEACH,
+        COLOR_LIGHT_PURPLE,
+        COLOR_LIGHT_BLUE,
+        COLOR_LIGHT_GREEN,
+        COLOR_LIGHT_YELLOW,
+        COLOR_LIGHT_ORANGE,
+        COLOR_PINK,
+        COLOR_LIME,
+        COLOR_MAROON,
+        COLOR_YELLOW,
+        COLOR_WHITE,
+        COLOR_GRAY,
+        COLOR_LIGHT_RED
     ]
 
     def scale(val, max_value, scaled_max) 
@@ -323,7 +348,7 @@ module SimplePlot
 
             @data_set_hash = {}
 
-            @axis_labels_color = Gosu::Color::CYAN
+            @axis_labels_color = COLOR_CYAN
             @data_point_size = 4
             @font = Gosu::Font.new(32)
             @display_grid = true
@@ -338,7 +363,7 @@ module SimplePlot
                                         graph_width, graph_height, @axis_labels_color)
             @axis_labels = []
             @metadata = Table.new(x_pixel_to_screen(@margin_size), y_pixel_to_screen(graph_height + 64),
-                                  graph_width, 100, Gosu::Color::GRAY)
+                                  graph_width, 100, COLOR_GRAY)
             @function_button = Button.new("Define Function",
                                           x_pixel_to_screen(10),
                                           y_pixel_to_screen(graph_height + 64),
@@ -406,7 +431,7 @@ module SimplePlot
                 end 
                 c = color_map[n]
                 if c.nil? 
-                    c = Gosu::Color::GREEN 
+                    c = DEFAULT_COLORS[new_data_sets.size]
                 end
 
                 # Determine what type of x we have (time or value)                
@@ -446,7 +471,7 @@ module SimplePlot
             apply_visible_range
         end 
 
-        def add_data_set(name, data, color = Gosu::Color::GREEN) 
+        def add_data_set(name, data, color = COLOR_LIGHT_PURPLE) 
             @data_set_hash[name] = DataSet.new(name, data, color) 
             @data_set_hash[name].source_filename = "Predefined"
             set_range_as_superset 

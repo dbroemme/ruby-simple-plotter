@@ -8,7 +8,7 @@ module SimplePlot
         attr_accessor :visible 
         attr_accessor :children 
 
-        def initialize(x, y, color = Gosu::Color::GREEN) 
+        def initialize(x, y, color = COLOR_CYAN) 
             @x = x 
             @y = y 
             @color = color
@@ -71,7 +71,7 @@ module SimplePlot
 
     class Text < Widget
         attr_accessor :str
-        def initialize(str, x, y, font, color = Gosu::Color::WHITE) 
+        def initialize(str, x, y, font, color = COLOR_WHITE) 
             super(x, y, color) 
             @str = str
             @font = font
@@ -84,7 +84,7 @@ module SimplePlot
     class PlotPoint < Widget
         attr_accessor :data_point_size 
 
-        def initialize(x, y, color = Gosu::Color::GREEN, size = 4) 
+        def initialize(x, y, color = COLOR_MAROON, size = 4) 
             super(x, y, color) 
             @data_point_size = size
         end
@@ -115,7 +115,7 @@ module SimplePlot
         attr_accessor :label
         attr_accessor :is_pressed
 
-        def initialize(label, x, y, width = nil, color = Gosu::Color::GRAY) 
+        def initialize(label, x, y, width = nil, color = COLOR_DARK_GRAY) 
             super(x, y, color) 
             @label = label
             @font = Gosu::Font.new(24)
@@ -130,10 +130,10 @@ module SimplePlot
         end
 
         def render 
-            draw_border(Gosu::Color::WHITE)
-            Gosu::draw_rect(@x + 1, @y + 1, @width - 2, @height - 2, @color, 2) 
+            draw_border(COLOR_WHITE)
+            #Gosu::draw_rect(@x + 1, @y + 1, @width - 2, @height - 2, @color, 2) 
             text_x = center_x - (@text_pixel_width / 2)
-            @font.draw_text(@label, text_x, @y, 10, 1, 1, Gosu::Color::WHITE)
+            @font.draw_text(@label, text_x, @y, 10, 1, 1, COLOR_CYAN)
         end 
     end 
 
@@ -142,7 +142,7 @@ module SimplePlot
         attr_accessor :offset_lines
 
         def initialize(content, x, y, width, height, offset_lines = 0) 
-            super(x, y, Gosu::Color::GRAY) 
+            super(x, y, COLOR_GRAY) 
             @content = content
             @lines = @content.split("\n")
             @font = Gosu::Font.new(24)
@@ -152,14 +152,14 @@ module SimplePlot
         end
 
         def render 
-            draw_border(Gosu::Color::WHITE)
+            draw_border(COLOR_WHITE)
             Gosu::draw_rect(@x + 1, @y + 1, @width - 2, @height - 2, @color, 2) 
             y = @y + 4
             @offset_lines.times do 
                 y = y + 26
             end
             @lines.each do |line|
-                @font.draw_text(line, @x + 5, y, 10, 1, 1, Gosu::Color::WHITE)
+                @font.draw_text(line, @x + 5, y, 10, 1, 1, COLOR_WHITE)
                 y = y + 26
             end
         end 
@@ -199,8 +199,8 @@ module SimplePlot
             @width = width
             @height = height
             add_child(Text.new("Define a Custom Function to Plot", x + 5, y + 5, Gosu::Font.new(32)))
-            add_child(Document.new(content, x, y, width, height, 4))
-            @textinput = TextField.new(@window, @font, x + 10, y + 60)
+            add_child(Document.new(content, x, y, width, height, 5))
+            @textinput = TextField.new(@window, @font, x + 10, y + 50)
             add_child(@textinput)           
             @ok_button = Button.new("OK", center_x - 100, bottom_edge - 26, 100, 0xcc2e4053)
             @cancel_button = Button.new("Cancel", center_x + 50, bottom_edge - 26, 100, 0xcc2e4053)
@@ -226,6 +226,16 @@ module SimplePlot
                 return WidgetResult.new(true) 
             elsif id == Gosu::MsLeft
                 if @ok_button.contains_click(mouse_x, mouse_y)
+                    # TODO validate the expression
+                    x = 1
+                    begin 
+                        y = eval(@textinput.text)
+                        puts "We got the value y"
+                    rescue => e
+                        # TODO Display the error message
+                        puts "Did not compile"
+                        return WidgetResult.new(false)
+                    end
                     return WidgetResult.new(true, "ok", @textinput.text) 
                 elsif @cancel_button.contains_click(mouse_x, mouse_y)
                     return WidgetResult.new(true) 
@@ -253,7 +263,7 @@ module SimplePlot
     end
 
     class AxisLines < Widget
-        def initialize(x, y, width, height, color = Gosu::Color::GREEN) 
+        def initialize(x, y, width, height, color = COLOR_CYAN) 
             super x, y, color 
             @width = width 
             @height = height
@@ -269,7 +279,7 @@ module SimplePlot
         attr_accessor :x2
         attr_accessor :y2
 
-        def initialize(x, y, x2, y2, color = Gosu::Color::GREEN) 
+        def initialize(x, y, x2, y2, color = COLOR_CYAN) 
             super x, y, color 
             @x2 = x2 
             @y2 = y2
@@ -283,7 +293,7 @@ module SimplePlot
     class VerticalAxisLabel < Widget
         attr_accessor :label
 
-        def initialize(x, y, label, font, color = Gosu::Color::GREEN) 
+        def initialize(x, y, label, font, color = COLOR_CYAN) 
             super x, y, color 
             @label = label 
             @font = font
@@ -301,7 +311,7 @@ module SimplePlot
     class HorizontalAxisLabel < Widget
         attr_accessor :label
 
-        def initialize(x, y, label, font, color = Gosu::Color::GREEN) 
+        def initialize(x, y, label, font, color = COLOR_CYAN) 
             super x, y, color 
             @label = label 
             @font = font
@@ -318,7 +328,7 @@ module SimplePlot
         attr_accessor :data_rows 
         attr_accessor :row_colors
 
-        def initialize(x, y, width, height, color = Gosu::Color::GREEN) 
+        def initialize(x, y, width, height, color = COLOR_GRAY) 
             super(x, y, color) 
             @width = width 
             @height = height
@@ -388,9 +398,9 @@ module SimplePlot
             @display_grid = false
             @display_lines = true
             @data_set_hash = {}
-            @grid_line_color = Gosu::Color::GRAY
-            @cursor_line_color = 0xccf0f3f4 
-            @zero_line_color = Gosu::Color::BLUE 
+            @grid_line_color = COLOR_CYAN
+            @cursor_line_color = COLOR_DARK_GRAY 
+            @zero_line_color = COLOR_BLUE 
             @font = font
             @zoom_level = 1
         end
