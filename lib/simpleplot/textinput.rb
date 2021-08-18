@@ -11,20 +11,12 @@ class TextField < Gosu::TextInput
   attr_reader :x, :y
   
   def initialize(window, font, x, y)
-    # TextInput's constructor doesn't expect any arguments.
     super()
     
     @window, @font, @x, @y = window, font, x, y
     
-    # Start with a self-explanatory text in each field.
-    self.text = "d = x + 1"
+    self.text = "y = x + 1"
   end
-  
-  # Example filter method. You can truncate the text to employ a length limit (watch out
-  # with Ruby 1.8 and UTF-8!), limit the text to certain characters etc.
-  #def filter text
-  #  text.upcase
-  #end
   
   def draw
     # Depending on whether this is the currently selected input or not, change the

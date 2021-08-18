@@ -132,7 +132,6 @@ module SimplePlot
         def render 
             draw_border(Gosu::Color::WHITE)
             Gosu::draw_rect(@x + 1, @y + 1, @width - 2, @height - 2, @color, 2) 
-            # TODO Determine center_x for text
             text_x = center_x - (@text_pixel_width / 2)
             @font.draw_text(@label, text_x, @y, 10, 1, 1, Gosu::Color::WHITE)
         end 
@@ -163,8 +162,6 @@ module SimplePlot
                 @font.draw_text(line, @x + 5, y, 10, 1, 1, Gosu::Color::WHITE)
                 y = y + 26
             end
-            #text_pixel_width = @font.text_width(@label)
-            #@width = text_pixel_width + 10
         end 
     end 
 
@@ -174,7 +171,6 @@ module SimplePlot
             @width = width
             @height = height
             @title = title
-            @title_font = Gosu::Font.new(32)
             add_child(Text.new(title, x + 5, y + 5, Gosu::Font.new(32)))
             add_child(Document.new(content, x, y, width, height, 2))
             @ok_button = Button.new("OK", center_x - 50, bottom_edge - 26, 100, 0xcc2e4053)
@@ -187,10 +183,57 @@ module SimplePlot
             elsif id == Gosu::MsLeft
                 if @ok_button.contains_click(mouse_x, mouse_y)
                     return WidgetResult.new(true) 
-                elsif contains_click(mouse_x, mouse_y)
-                    # do nothing here, click was inside infobox
-                else 
+                end
+            end
+            WidgetResult.new(false)
+        end
+    end
+
+    class DefineFunctionForm < Widget 
+        attr_accessor :textinput
+
+        def initialize(window, font, x, y, width, height) 
+            super(x, y) 
+            @window = window
+            @font = font
+            @width = width
+            @height = height
+            add_child(Text.new("Define a Custom Function to Plot", x + 5, y + 5, Gosu::Font.new(32)))
+            add_child(Document.new(content, x, y, width, height, 4))
+            @textinput = TextField.new(@window, @font, x + 10, y + 60)
+            add_child(@textinput)           
+            @ok_button = Button.new("OK", center_x - 100, bottom_edge - 26, 100, 0xcc2e4053)
+            @cancel_button = Button.new("Cancel", center_x + 50, bottom_edge - 26, 100, 0xcc2e4053)
+            add_child(@ok_button) 
+            add_child(@cancel_button) 
+        end
+
+        def content 
+            <<~HEREDOC
+            The expression must be a valid Ruby assignment statement.
+            The data set will be given the name on the left-hand side.
+            Every expression must include the variable x. You define the y-axis value.
+                data_set_name = math_expression_that_includes_x
+
+            Examples:
+                line = x + 1
+                sin = Math.sin(x)
+          HEREDOC
+        end
+
+        def button_down id, mouse_x, mouse_y
+            if id == Gosu::KbEscape
+                return WidgetResult.new(true) 
+            elsif id == Gosu::MsLeft
+                if @ok_button.contains_click(mouse_x, mouse_y)
+                    return WidgetResult.new(true, "ok", @textinput.text) 
+                elsif @cancel_button.contains_click(mouse_x, mouse_y)
                     return WidgetResult.new(true) 
+                else 
+                    # Mouse click: Select text field based on mouse position.
+                    @window.text_input = [@textinput].find { |tf| tf.under_point?(mouse_x, mouse_y) }
+                    # Advanced: Move caret to clicked position
+                    @window.text_input.move_caret(mouse_x) unless @window.text_input.nil?
                 end
             end
             WidgetResult.new(false)
@@ -201,8 +244,11 @@ module SimplePlot
         attr_accessor :close_widget
         attr_accessor :action
         attr_accessor :form_data
-        def initialize(close_widget = false)
+
+        def initialize(close_widget = false, action = "none", form_data = nil)
             @close_widget = close_widget 
+            @action = action 
+            @form_data = form_data
         end
     end
 
@@ -297,17 +343,14 @@ module SimplePlot
 
             column_widths = []
             number_of_columns = @data_rows[0].size 
-            #puts "number_of_columns: #{number_of_columns}"
             (0..number_of_columns-1).each do |c| 
                 max_length = 0
                 (0..number_of_rows-1).each do |r|
                     text_pixel_width = @font.text_width(@data_rows[r][c])
-                    #puts "width #{text_pixel_width} for #{@data_rows[r][c]}"
                     if text_pixel_width > max_length 
                         max_length = text_pixel_width
                     end 
                 end 
-                #puts "column_widths[#{c}] = #{max_length}"
                 column_widths[c] = max_length
             end
 
@@ -346,7 +389,7 @@ module SimplePlot
             @display_lines = true
             @data_set_hash = {}
             @grid_line_color = Gosu::Color::GRAY
-            @cursor_line_color = Gosu::Color::GREEN
+            @cursor_line_color = 0xccf0f3f4 
             @zero_line_color = Gosu::Color::BLUE 
             @font = font
             @zoom_level = 1

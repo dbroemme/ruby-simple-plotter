@@ -339,9 +339,6 @@ module SimplePlot
                                        x_pixel_to_screen(10),
                                        y_pixel_to_screen(graph_height + 124),
                                        180)
-            @textinput = TextField.new(@window, @font,
-                                       x_pixel_to_screen(@margin_size + 20),
-                                       y_pixel_to_screen(300))
         end
 
         def help_content
@@ -586,39 +583,43 @@ module SimplePlot
                                           @window_width - 20, graph_height)
         end
 
+        def display_define_function_form 
+            @gui_mode = MODE_DEFINE_FUNCTION
+            @overlay_widget = DefineFunctionForm.new(@window, @font,
+                                                     x_pixel_to_screen(10), y_pixel_to_screen(10),
+                                                     @window_width - 20, graph_height)
+            @window.text_input = @overlay_widget.textinput
+            @window.text_input.move_caret(1)
+        end 
+
         def button_down id, mouse_x, mouse_y
             if @overlay_widget
                 result = @overlay_widget.button_down id, mouse_x, mouse_y
+                if @gui_mode == MODE_DEFINE_FUNCTION
+                    if result.action == "ok"
+                        clear_button 
+                        add_derived_data_set(result.form_data) 
+                    end 
+                end
                 if result.close_widget
                     @overlay_widget = nil 
+                    @gui_mode = MODE_PLOT
                 end
-                # TODO Based on the mode or overlay widget, use the response to take action
-                #      In particular defining functions, once we create the form for it
                 return 
             end
 
             if id == Gosu::MsLeft
                 if @function_button.contains_click(mouse_x, mouse_y)
-                    @function_button.is_pressed = true 
-                    @window.text_input = @textinput
-                    @window.text_input.move_caret(1)
-                elsif @function_button.is_pressed
+                    display_define_function_form
+                #elsif @function_button.is_pressed
                     # Mouse click: Select text field based on mouse position.
-                    @window.text_input = [@textinput].find { |tf| tf.under_point?(mouse_x, mouse_y) }
+                #    @window.text_input = [@textinput].find { |tf| tf.under_point?(mouse_x, mouse_y) }
                     # Advanced: Move caret to clicked position
-                    @window.text_input.move_caret(mouse_x) unless @window.text_input.nil?
+                #    @window.text_input.move_caret(mouse_x) unless @window.text_input.nil?
                 elsif @help_button.contains_click(mouse_x, mouse_y)
                     display_help 
                 elsif @quit_button.contains_click(mouse_x, mouse_y)
                     return WidgetResult.new(true) 
-                end
-            end
-            if id == Gosu::KB_RETURN
-                puts "Hit return"
-                if @function_button.is_pressed
-                    puts "Going to add function: #{@textinput.text}"
-                    clear_button 
-                    add_derived_data_set(@textinput.text) 
                 end
             end
             if @window.text_input.nil?
