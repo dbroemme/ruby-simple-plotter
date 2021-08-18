@@ -81,6 +81,20 @@ module SimplePlot
         end
     end 
 
+    class ErrorMessage < Text
+        attr_accessor :str
+        def initialize(str, x, y, font) 
+            label = "ERROR: #{str}"
+            super(label, x, y, font, COLOR_RED) 
+            @width = @font.text_width(label) + 4
+            @height = 36
+        end
+        def render 
+            super
+            Gosu::draw_rect(@x, @y, @width, @height, COLOR_BLACK, 9) 
+        end
+    end 
+
     class PlotPoint < Widget
         attr_accessor :data_point_size 
 
@@ -206,6 +220,7 @@ module SimplePlot
             @cancel_button = Button.new("Cancel", center_x + 50, bottom_edge - 26, 100, 0xcc2e4053)
             add_child(@ok_button) 
             add_child(@cancel_button) 
+            @error_message = nil
         end
 
         def content 
@@ -226,14 +241,15 @@ module SimplePlot
                 return WidgetResult.new(true) 
             elsif id == Gosu::MsLeft
                 if @ok_button.contains_click(mouse_x, mouse_y)
-                    # TODO validate the expression
                     x = 1
+                    # TODO Add other data sets in the context for evaluation
                     begin 
                         y = eval(@textinput.text)
-                        puts "We got the value y"
+                        # TODO it still might not contain the x variable
+                        #      which we need to have a plot
                     rescue => e
-                        # TODO Display the error message
-                        puts "Did not compile"
+                        parts = e.to_s.partition("SimplePlot")
+                        add_error_message(parts[0][0..-8])
                         return WidgetResult.new(false)
                     end
                     return WidgetResult.new(true, "ok", @textinput.text) 
@@ -247,6 +263,16 @@ module SimplePlot
                 end
             end
             WidgetResult.new(false)
+        end
+
+        def add_error_message(msg) 
+            @error_message = ErrorMessage.new(msg, x + 10, y + 94, @font)
+        end 
+
+        def render 
+            if @error_message
+                @error_message.draw 
+            end 
         end
     end
 
@@ -304,7 +330,7 @@ module SimplePlot
             Gosu::draw_line @x - 20, @y, @color,
                             @x, @y, @color
             
-            @font.draw_text(@label, @x - text_pixel_width - 28, @y - 16, 1, 1, 1, @color)
+            @font.draw_text(@label, @x - text_pixel_width - 28, @y - 12, 1, 1, 1, @color)
         end
     end 
 

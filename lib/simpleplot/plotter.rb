@@ -39,6 +39,8 @@ module SimplePlot
     COLOR_CYAN = Gosu::Color::CYAN
     COLOR_BLUE = Gosu::Color::BLUE
     COLOR_DARK_GRAY = Gosu::Color.argb(0xccf0f3f4)
+    COLOR_RED = Gosu::Color::RED
+    COLOR_BLACK = Gosu::Color::BLACK
 
     DEFAULT_COLORS = [
         COLOR_PEACH,
@@ -351,6 +353,7 @@ module SimplePlot
             @axis_labels_color = COLOR_CYAN
             @data_point_size = 4
             @font = Gosu::Font.new(32)
+            @small_font = Gosu::Font.new(24)
             @display_grid = true
             @display_lines = false
             @margin_size = 200
@@ -364,17 +367,24 @@ module SimplePlot
             @axis_labels = []
             @metadata = Table.new(x_pixel_to_screen(@margin_size), y_pixel_to_screen(graph_height + 64),
                                   graph_width, 100, COLOR_GRAY)
+            @no_data_message = Text.new('Click "Define Function" or "Open Data File" to plot data',
+                                        x_pixel_to_screen(@margin_size + 32), y_pixel_to_screen(graph_height + 84),
+                                        @small_font, COLOR_CYAN) 
             @function_button = Button.new("Define Function",
                                           x_pixel_to_screen(10),
                                           y_pixel_to_screen(graph_height + 64),
                                           180)
+            @open_file_button = Button.new("Open Data File",
+                                          x_pixel_to_screen(10),
+                                          y_pixel_to_screen(graph_height + 94),
+                                          180)
             @help_button = Button.new("Help",
                                        x_pixel_to_screen(10),
-                                       y_pixel_to_screen(graph_height + 94),
+                                       y_pixel_to_screen(graph_height + 124),
                                        180)
             @quit_button = Button.new("Quit",
                                        x_pixel_to_screen(10),
-                                       y_pixel_to_screen(graph_height + 124),
+                                       y_pixel_to_screen(graph_height + 154),
                                        180)
         end
 
@@ -578,7 +588,7 @@ module SimplePlot
             @y_axis_labels.each do |label|
                 @axis_labels << VerticalAxisLabel.new(x_pixel_to_screen(@margin_size),
                                                       y_pixel_to_screen(y),
-                                                      label, @font, @axis_labels_color) 
+                                                      label, @small_font, @axis_labels_color) 
                 y = y + 100
             end
 
@@ -586,7 +596,7 @@ module SimplePlot
             @x_axis_labels.each do |label|
                 @axis_labels <<  HorizontalAxisLabel.new(x_pixel_to_screen(x),
                                                          y_pixel_to_screen(graph_height),
-                                                         label, @font, @axis_labels_color)
+                                                         label, @small_font, @axis_labels_color)
                 x = x + 150
             end
         end 
@@ -598,7 +608,11 @@ module SimplePlot
             end
             @plot.draw
             @metadata.draw
+            if @data_set_hash.empty?
+                @no_data_message.draw
+            end
             @function_button.draw 
+            @open_file_button.draw
             @help_button.draw 
             @quit_button.draw 
             if @function_button.is_pressed
