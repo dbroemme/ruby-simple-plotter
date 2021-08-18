@@ -55,8 +55,6 @@ class SimplePlotterApp < Gosu::Window
         if is_cursor_on_graph 
             @plotter.draw_cursor_lines(mouse_x, mouse_y)
         end 
-
-        @font.draw_text("#{width}, #{height}", @widget_start_x + 600, height - 32, 1, 1, 1, Gosu::Color::WHITE) 
     end 
 
     def is_cursor_on_graph

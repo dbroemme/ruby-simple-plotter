@@ -56,10 +56,10 @@ class TextField < Gosu::TextInput
   # (Usually one would use clip_to and scroll around on the text field.)
   def width
     text_width = @font.text_width(self.text)
-    if text_width > 400
+    if text_width > 600
       return text_width 
     end 
-    400
+    600
   end
   
   def height

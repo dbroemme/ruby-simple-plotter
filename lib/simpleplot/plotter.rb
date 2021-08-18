@@ -126,6 +126,7 @@ module SimplePlot
         attr_accessor :range 
         attr_accessor :rendered_points 
         attr_accessor :data_point_size
+        attr_accessor :source_filename
 
         def initialize(name, data_points, color, is_time_based = false, data_point_size = 4) 
             @name = name 
@@ -138,6 +139,13 @@ module SimplePlot
                 calculate_range
             end
         end
+
+        def source_display 
+            if @source_filename.nil?
+                return "Unknown source"
+            end 
+            @source_filename
+        end 
 
         def derive_values(visible_range)
             # Base implementation is empty
@@ -268,6 +276,10 @@ module SimplePlot
             @range = range
         end 
 
+        def source_display 
+            @function_str
+        end 
+
         def derive_values(visible_range)
             @data_points = []
             x = visible_range.left_x
@@ -343,17 +355,18 @@ module SimplePlot
 
         def help_content
             <<~HEREDOC
-              You can plot multiple data sets at once, either
-              data points from a file or define your own function.
-              Hit the Define Function button to enter a function
-              that will be evaluated in Ruby code.
+              You can plot multiple data sets at once, using data from files
+              or you can define your own function(s) to plot.
+
               Key Commands:
                 arrow keys      scroll up, down, left, right
                 <, >            zoom in or out
-                d               decrease data point size
-                f               increase data point size
+                d               define a custom function to plot
+                a               decrease data point size
+                s               increase data point size
                 g               toggle grid lines
                 l               toggle lines connecting points
+                q               quit the program
             HEREDOC
         end
         
@@ -408,6 +421,7 @@ module SimplePlot
                 if data_set.nil? 
                     puts "Creating data set #{n}. Time based: #{is_time_based}"
                     data_set = DataSet.new(n, nil, c, is_time_based) 
+                    data_set.source_filename = filename
                     new_data_sets[n] = data_set 
                 end 
                 
@@ -434,6 +448,7 @@ module SimplePlot
 
         def add_data_set(name, data, color = Gosu::Color::GREEN) 
             @data_set_hash[name] = DataSet.new(name, data, color) 
+            @data_set_hash[name].source_filename = "Predefined"
             set_range_as_superset 
             calculate_axis_labels
             apply_visible_range
@@ -457,7 +472,7 @@ module SimplePlot
             i = 1
             @data_set_hash.values.each do |data_set|
                 @plot.add_data_set(data_set)
-                @metadata.add_row([i.to_s, data_set.name], data_set.color)
+                @metadata.add_row([i.to_s, data_set.name, data_set.source_display], data_set.color)
                 i = i + 1
             end
         end
@@ -571,9 +586,7 @@ module SimplePlot
 
         def draw_cursor_lines(mouse_x, mouse_y)
             x_val, y_val = @plot.draw_cursor_lines(mouse_x, mouse_y)
-
-            @font.draw_text("#{x_val.round(2).to_s}, #{y_val.round(2).to_s}", x_pixel_to_screen(10), y_pixel_to_screen(widget_height) - 32, 1, 1, 1, Gosu::Color::WHITE) 
-            @font.draw_text("#{mouse_x}, #{mouse_y}", x_pixel_to_screen(400), y_pixel_to_screen(widget_height) - 32, 1, 1, 1, Gosu::Color::WHITE) 
+            @font.draw_text("#{x_val.round(2).to_s}, #{y_val.round(2).to_s}", x_pixel_to_screen(@margin_size), y_pixel_to_screen(widget_height) - 32, 1, 1, 1, Gosu::Color::WHITE) 
         end 
 
         def display_help 
@@ -629,12 +642,12 @@ module SimplePlot
                     @plot.display_grid = !@plot.display_grid
                 elsif id == Gosu::KbL
                     @plot.display_lines = !@plot.display_lines
-                elsif id == Gosu::KbF
+                elsif id == Gosu::KbS
                     @data_set_hash.values.each do |data_set|
                         data_set.increase_size 
                     end
                     @plot.increase_data_point_size
-                elsif id == Gosu::KbD
+                elsif id == Gosu::KbA
                     @data_set_hash.values.each do |data_set|
                         data_set.decrease_size 
                     end
