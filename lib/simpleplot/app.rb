@@ -1,5 +1,6 @@
 require 'gosu'
 require_relative 'plotter'
+require_relative 'version'
 
 # This app allows you to quickly use the SimplePlot gem and also
 # serves as a starting point for how you can use it in your own
@@ -13,6 +14,9 @@ class SimplePlotterApp < Gosu::Window
         @widget_start_y = 100
         @plotter = SimplePlot::SimplePlot.new(self, 800, 600, @widget_start_x, @widget_start_y) 
         @font = Gosu::Font.new(32)
+        @title_font = Gosu::Font.new(38)
+        @version_font = Gosu::Font.new(22)
+        @banner_image = Gosu::Image.new("./media/Banner.jpg")
         @update_count = 0
         @pause = false
     end 
@@ -53,6 +57,9 @@ class SimplePlotterApp < Gosu::Window
     end 
     
     def draw 
+        @banner_image.draw(1,1,1,0.9,0.9)
+        @title_font.draw_text("Ruby Simple Plotter", 10, 20, 2, 1, 1, Gosu::Color::WHITE)
+        @version_font.draw_text("Version #{SimplePlot::VERSION}", 13, 54, 2, 1, 1, Gosu::Color::WHITE)
         @plotter.render(width, height, @update_count)
 
         if is_cursor_on_graph and @plotter.overlay_widget.nil?
