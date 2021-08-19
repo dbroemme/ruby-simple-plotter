@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+
+./run-simple-plotter -f ./data/example_diagonal.csv -c n,x,y

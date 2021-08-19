@@ -206,7 +206,7 @@ module SimplePlot
     class DefineFunctionForm < Widget 
         attr_accessor :textinput
 
-        def initialize(window, font, x, y, width, height) 
+        def initialize(window, font, x, y, width, height, data_set_names) 
             super(x, y) 
             @window = window
             @font = font

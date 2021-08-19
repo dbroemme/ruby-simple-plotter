@@ -40,6 +40,12 @@ class SimplePlotCommand
         desc "Specify the order of columns in the input file"
     end
 
+    option :define_function do 
+        short "-d string"
+        long "--define-function string"
+        desc "Define a custom function plot"
+    end
+
     def run 
         if params[:help]
             print help 

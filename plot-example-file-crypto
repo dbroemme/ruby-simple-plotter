@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+
+./run-simple-plotter -f ./data/example_crypto_prices.csv -c t,n,y
