@@ -747,6 +747,8 @@ module SimplePlot
                 elsif id == Gosu::KbUp
                     if @metadata.contains_click(mouse_x, mouse_y)
                         @metadata.scroll_up 
+                    elsif @gui_mode == MODE_OPEN_FILE
+                        @overlay_widget.button_down id, mouse_x, mouse_y
                     else
                         @plot.scroll_up
                         calculate_axis_labels
@@ -755,6 +757,8 @@ module SimplePlot
                 elsif id == Gosu::KbDown
                     if @metadata.contains_click(mouse_x, mouse_y)
                         @metadata.scroll_down
+                    elsif @gui_mode == MODE_OPEN_FILE
+                        @overlay_widget.button_down id, mouse_x, mouse_y
                     else
                         @plot.scroll_down
                         calculate_axis_labels

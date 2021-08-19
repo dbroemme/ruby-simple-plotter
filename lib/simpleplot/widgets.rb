@@ -299,7 +299,7 @@ module SimplePlot
             add_child(@cancel_button) 
             @error_message = nil
 
-            @file_table = Table.new(x + 370, y + 64, 400, 180, ["Filename"], @font, COLOR_CYAN, 6)
+            @file_table = Table.new(x + 370, y + 64, 400, 180, ["Filename"], @font, COLOR_CYAN, 5)
             files = Dir["./data/*"]
             files.each do |f|
                 @file_table.add_row([f.to_s], COLOR_WHITE) 
@@ -326,6 +326,14 @@ module SimplePlot
         def button_down id, mouse_x, mouse_y
             if id == Gosu::KbEscape
                 return WidgetResult.new(true) 
+            elsif id == Gosu::KbUp
+                if @file_table.contains_click(mouse_x, mouse_y)
+                    @file_table.scroll_up
+                end
+            elsif id == Gosu::KbDown
+                if @file_table.contains_click(mouse_x, mouse_y)
+                    @file_table.scroll_down
+                end
             elsif id == Gosu::MsLeft
                 if @ok_button.contains_click(mouse_x, mouse_y)
                     return WidgetResult.new(true, "ok", [@selected_filename, @format_textinput.text]) 
