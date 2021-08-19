@@ -374,8 +374,11 @@ module SimplePlot
                                   graph_width - 200, 120,
                                   ["#", "Name", "Source"],
                                   @small_font, COLOR_GRAY, 3)
-            @no_data_message = Text.new('Click "Define Function" or "Open Data File" to plot data',
+            @no_data_message_1 = Text.new('Click "Define Function"',
                                         x_pixel_to_screen(@margin_size + 32), y_pixel_to_screen(graph_height + 84),
+                                        @small_font, COLOR_CYAN) 
+            @no_data_message_2 = Text.new('or "Open Data File" to plot data',
+                                        x_pixel_to_screen(@margin_size + 32), y_pixel_to_screen(graph_height + 108),
                                         @small_font, COLOR_CYAN) 
             @function_button = Button.new("Define Function",
                                           x_pixel_to_screen(10),
@@ -396,7 +399,7 @@ module SimplePlot
             @cursor_readout = Widget.new(x_pixel_to_screen(@margin_size + graph_width - 190),
                                          y_pixel_to_screen(graph_height + 64),
                                          COLOR_GRAY)
-            @cursor_readout.width = 190
+            @cursor_readout.width = 270
             @cursor_readout.height = 120
         end
 
@@ -621,7 +624,8 @@ module SimplePlot
             @plot.draw
             @metadata.draw
             if @data_set_hash.empty?
-                @no_data_message.draw
+                @no_data_message_1.draw
+                @no_data_message_2.draw
             end
             @function_button.draw 
             @open_file_button.draw
@@ -639,7 +643,12 @@ module SimplePlot
 
         def draw_cursor_lines(mouse_x, mouse_y)
             x_val, y_val = @plot.draw_cursor_lines(mouse_x, mouse_y)
-            @small_font.draw_text("x: #{x_val.round(2).to_s}",
+            if @range.is_time_based
+                x_str = Time.at(x_val).to_s
+            else
+                x_str = "x: #{x_val.round(2).to_s}"
+            end
+            @small_font.draw_text(x_str,
                                   x_pixel_to_screen(@margin_size + graph_width - 186),
                                   y_pixel_to_screen(graph_height + 94), 1, 1, 1, COLOR_GRAY) 
             @small_font.draw_text("y: #{y_val.round(2).to_s}",
