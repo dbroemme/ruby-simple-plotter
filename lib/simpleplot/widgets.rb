@@ -290,7 +290,7 @@ module SimplePlot
 
             add_child(Text.new("Select a file from the data subdirectory", x + 5, y + 5, @font))
             add_child(Document.new(content, x, y, width, height, 2))
-            @format_textinput = TextField.new(@window, @font, x + 20, y + height - 80, "n,x,y", 200)
+            @format_textinput = TextField.new(@window, @font, x + 20, y + 200, "n,x,y", 200)
             add_child(@format_textinput)      
 
             @ok_button = Button.new("OK", center_x - 100, bottom_edge - 26, 100, COLOR_FORM_BUTTON)
@@ -299,12 +299,18 @@ module SimplePlot
             add_child(@cancel_button) 
             @error_message = nil
 
-            @file_table = Table.new(x + 370, y + 64, 400, 300, ["Filename"], @font, COLOR_CYAN)
+            @file_table = Table.new(x + 370, y + 64, 400, 180, ["Filename"], @font, COLOR_CYAN, 6)
             files = Dir["./data/*"]
             files.each do |f|
                 @file_table.add_row([f.to_s], COLOR_WHITE) 
             end
             add_child(@file_table) 
+
+            @preview = Widget.new(x + 5, y + 260, COLOR_CYAN)
+            @preview.width = @width - 15
+            @preview.height = 100
+            @preview_content = nil
+            add_child(Text.new("Data Preview", @preview.x + 5, @preview.y + 5, @font, COLOR_CYAN))
         end
 
         def content 
@@ -337,6 +343,15 @@ module SimplePlot
                             # nothing to do
                         else 
                             @selected_filename = val
+                            # Try to read this file and get preview content
+                            if File.exist?(@selected_filename)
+                                @preview_content = []
+                                File.readlines(@selected_filename).each do |line|
+                                    if @preview_content.size < 2
+                                        @preview_content << line
+                                    end 
+                                end 
+                            end
                         end 
                     end
                 end
@@ -349,6 +364,14 @@ module SimplePlot
         end 
 
         def render 
+            @preview.draw_border
+            if @preview_content
+                y = @preview.y + 40
+                @preview_content.each do |line|
+                    @font.draw_text(line, @preview.x + 7, y, 10, 1, 1, COLOR_WHITE)
+                    y = y + 26
+                end
+            end
             if @error_message
                 @error_message.draw 
             end 
@@ -466,7 +489,7 @@ module SimplePlot
             if row_number < 0 or row_number > data_rows.size - 1
                 return nil 
             end 
-            @selected_row = row_number
+            @selected_row = @current_row + row_number
             @data_rows[@selected_row][column_number]
         end
 
@@ -525,7 +548,7 @@ module SimplePlot
                         x = x + column_widths[c] + 20
                     end
                     if @selected_row 
-                        if i == @selected_row 
+                        if count == @selected_row 
                             Gosu::draw_rect(@x + 20, y, @width - 30, 28, COLOR_BLACK, 19) 
                         end 
                     end
