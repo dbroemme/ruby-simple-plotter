@@ -173,6 +173,9 @@ module SimplePlot
             if @source_filename.nil?
                 return "Unknown source"
             end 
+            if @source_filename.start_with? "./data/"
+                return @source_filename[7..-1]
+            end
             @source_filename
         end 
 
@@ -368,7 +371,7 @@ module SimplePlot
                                         graph_width, graph_height, @axis_labels_color)
             @axis_labels = []
             @metadata = Table.new(x_pixel_to_screen(@margin_size), y_pixel_to_screen(graph_height + 64),
-                                  graph_width, 100, @small_font, COLOR_GRAY)
+                                  graph_width - 200, 120, @small_font, COLOR_GRAY)
             @no_data_message = Text.new('Click "Define Function" or "Open Data File" to plot data',
                                         x_pixel_to_screen(@margin_size + 32), y_pixel_to_screen(graph_height + 84),
                                         @small_font, COLOR_CYAN) 
@@ -388,6 +391,11 @@ module SimplePlot
                                        x_pixel_to_screen(10),
                                        y_pixel_to_screen(graph_height + 154),
                                        180)
+            @cursor_readout = Widget.new(x_pixel_to_screen(@margin_size + graph_width - 190),
+                                         y_pixel_to_screen(graph_height + 64),
+                                         COLOR_GRAY)
+            @cursor_readout.width = 190
+            @cursor_readout.height = 120
         end
 
         def help_content
@@ -465,10 +473,10 @@ module SimplePlot
                 if data_set.is_time_based
                     # %Y-%m-%dT%H:%M:%S
                     date_time = DateTime.parse(t).to_time
-                    puts "Adding time point: #{date_time}    #{date_time.to_i}, #{y.to_f}"
+                    #puts "Adding time point: #{date_time}    #{date_time.to_i}, #{y.to_f}"
                     data_set.add_data_point(DataPoint.new(date_time.to_i, y.to_f))
                 else
-                    puts "Adding data point: #{x.to_f}, #{y.to_f}"
+                    #puts "Adding data point: #{x.to_f}, #{y.to_f}"
                     data_set.add_data_point(DataPoint.new(x.to_f, y.to_f))
                 end
             end
@@ -623,11 +631,17 @@ module SimplePlot
             if @overlay_widget
                 @overlay_widget.draw 
             end
+            @cursor_readout.draw_border
         end
 
         def draw_cursor_lines(mouse_x, mouse_y)
             x_val, y_val = @plot.draw_cursor_lines(mouse_x, mouse_y)
-            @font.draw_text("#{x_val.round(2).to_s}, #{y_val.round(2).to_s}", x_pixel_to_screen(@margin_size), y_pixel_to_screen(widget_height) - 32, 1, 1, 1, Gosu::Color::WHITE) 
+            @small_font.draw_text("x: #{x_val.round(2).to_s}",
+                                  x_pixel_to_screen(@margin_size + graph_width - 186),
+                                  y_pixel_to_screen(graph_height + 70), 1, 1, 1, COLOR_CYAN) 
+            @small_font.draw_text("y: #{y_val.round(2).to_s}",
+                                  x_pixel_to_screen(@margin_size + graph_width - 186),
+                                  y_pixel_to_screen(graph_height + 100), 1, 1, 1, COLOR_CYAN) 
         end 
 
         def display_help 

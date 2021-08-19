@@ -279,6 +279,7 @@ module SimplePlot
 
     class OpenDataFileForm < Widget 
         attr_accessor :format_textinput
+        attr_accessor :selected_filename
 
         def initialize(window, font, x, y, width, height) 
             super(x, y) 
@@ -289,7 +290,7 @@ module SimplePlot
 
             add_child(Text.new("Select a file from the data subdirectory", x + 5, y + 5, @font))
             add_child(Document.new(content, x, y, width, height, 2))
-            @format_textinput = TextField.new(@window, @font, x + 20, y + height - 80, "t,n,y", 200)
+            @format_textinput = TextField.new(@window, @font, x + 20, y + height - 80, "n,x,y", 200)
             add_child(@format_textinput)      
 
             @ok_button = Button.new("OK", center_x - 100, bottom_edge - 26, 100, COLOR_FORM_BUTTON)
@@ -313,10 +314,6 @@ module SimplePlot
             n - name of data set
             x - x value
             y - y value
-
-            Examples:
-              t,x,y
-              n,x,y
             HEREDOC
         end
 
@@ -327,7 +324,7 @@ module SimplePlot
                 if @ok_button.contains_click(mouse_x, mouse_y)
                     # TODO package up the file name and the format
                     #      probably in an array
-                    return WidgetResult.new(true, "ok", @format_textinput.text) 
+                    return WidgetResult.new(true, "ok", [@selected_filename, @format_textinput.text]) 
                 elsif @cancel_button.contains_click(mouse_x, mouse_y)
                     return WidgetResult.new(true) 
                 else 
@@ -335,6 +332,15 @@ module SimplePlot
                     @window.text_input = [@format_textinput].find { |tf| tf.under_point?(mouse_x, mouse_y) }
                     # Advanced: Move caret to clicked position
                     @window.text_input.move_caret(mouse_x) unless @window.text_input.nil?
+
+                    if @file_table.contains_click(mouse_x, mouse_y)
+                        val = @file_table.set_selected_row(mouse_y, 0)
+                        if val.nil?
+                            # nothing to do
+                        else 
+                            @selected_filename = val
+                        end 
+                    end
                 end
             end
             WidgetResult.new(false)
@@ -428,6 +434,7 @@ module SimplePlot
     class Table < Widget
         attr_accessor :data_rows 
         attr_accessor :row_colors
+        attr_accessor :selected_row
 
         def initialize(x, y, width, height, font, color = COLOR_GRAY) 
             super(x, y, color) 
@@ -435,6 +442,16 @@ module SimplePlot
             @height = height
             @font = font
             clear_rows            
+        end
+
+        def set_selected_row(mouse_y, column_number)
+            relative_y = mouse_y - @y
+            row_number = (relative_y / 30).floor
+            if row_number > data_rows.size - 1
+                return nil 
+            end 
+            @selected_row = row_number
+            @data_rows[@selected_row][column_number]
         end
 
         def clear_rows 
@@ -467,7 +484,7 @@ module SimplePlot
 
             x = @x + 10
             if number_of_columns > 1
-                (0..number_of_columns-1).each do |c| 
+                (0..number_of_columns-2).each do |c| 
                     x = x + column_widths[c] + 20
                     Gosu::draw_line x, @y, @color, x, @y + @height, @color, 20
                 end 
@@ -480,6 +497,11 @@ module SimplePlot
                 (0..number_of_columns-1).each do |c| 
                     @font.draw_text(row[c], x, y, 20, 1, 1, @row_colors[i])
                     x = x + column_widths[c] + 20
+                end
+                if @selected_row 
+                    if i == @selected_row 
+                        Gosu::draw_rect(@x + 20, y, @width - 30, 28, COLOR_BLACK, 19) 
+                    end 
                 end
                 i = i + 1
                 y = y + 30
