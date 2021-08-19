@@ -19,6 +19,7 @@ module SimplePlot
     MODE_PLOT = "Plot"
     MODE_HELP = "Help"
     MODE_DEFINE_FUNCTION = "Function"
+    MODE_OPEN_FILE = "Open"
 
     COLOR_PEACH = Gosu::Color.argb(0xffe6b0aa)
     COLOR_LIGHT_PURPLE = Gosu::Color.argb(0xffd7bde2)
@@ -41,6 +42,7 @@ module SimplePlot
     COLOR_DARK_GRAY = Gosu::Color.argb(0xccf0f3f4)
     COLOR_RED = Gosu::Color::RED
     COLOR_BLACK = Gosu::Color::BLACK
+    COLOR_FORM_BUTTON = Gosu::Color.argb(0xcc2e4053)
 
     DEFAULT_COLORS = [
         COLOR_PEACH,
@@ -366,7 +368,7 @@ module SimplePlot
                                         graph_width, graph_height, @axis_labels_color)
             @axis_labels = []
             @metadata = Table.new(x_pixel_to_screen(@margin_size), y_pixel_to_screen(graph_height + 64),
-                                  graph_width, 100, COLOR_GRAY)
+                                  graph_width, 100, @small_font, COLOR_GRAY)
             @no_data_message = Text.new('Click "Define Function" or "Open Data File" to plot data',
                                         x_pixel_to_screen(@margin_size + 32), y_pixel_to_screen(graph_height + 84),
                                         @small_font, COLOR_CYAN) 
@@ -644,6 +646,15 @@ module SimplePlot
             @window.text_input.move_caret(1)
         end 
 
+        def display_open_file_form 
+            @gui_mode = MODE_OPEN_FILE
+            @overlay_widget = OpenDataFileForm.new(@window, @small_font,
+                                                   x_pixel_to_screen(10), y_pixel_to_screen(10),
+                                                   @window_width - 20, graph_height)
+            @window.text_input = @overlay_widget.format_textinput
+            @window.text_input.move_caret(1)
+        end 
+
         def button_down id, mouse_x, mouse_y
             if @overlay_widget
                 result = @overlay_widget.button_down id, mouse_x, mouse_y
@@ -652,6 +663,13 @@ module SimplePlot
                         clear_button 
                         add_derived_data_set(result.form_data) 
                     end 
+                elsif @gui_mode == MODE_OPEN_FILE 
+                    if result.action == "ok"
+                        clear_button 
+                        filename_and_format_array = result.form_data
+                        add_file_data(filename_and_format_array[0],
+                                      filename_and_format_array[1])
+                    end
                 end
                 if result.close_widget
                     @overlay_widget = nil 
@@ -663,11 +681,8 @@ module SimplePlot
             if id == Gosu::MsLeft
                 if @function_button.contains_click(mouse_x, mouse_y)
                     display_define_function_form
-                #elsif @function_button.is_pressed
-                    # Mouse click: Select text field based on mouse position.
-                #    @window.text_input = [@textinput].find { |tf| tf.under_point?(mouse_x, mouse_y) }
-                    # Advanced: Move caret to clicked position
-                #    @window.text_input.move_caret(mouse_x) unless @window.text_input.nil?
+                elsif @open_file_button.contains_click(mouse_x, mouse_y)
+                    display_open_file_form 
                 elsif @help_button.contains_click(mouse_x, mouse_y)
                     display_help 
                 elsif @quit_button.contains_click(mouse_x, mouse_y)
@@ -677,6 +692,10 @@ module SimplePlot
             if @window.text_input.nil?
                 if id == Gosu::KbH 
                     display_help
+                elsif id == Gosu::KbO 
+                    display_open_file_form
+                elsif id == Gosu::KbD
+                    display_define_function_form
                 elsif id == Gosu::KbG 
                     @plot.display_grid = !@plot.display_grid
                 elsif id == Gosu::KbL

@@ -10,12 +10,12 @@ class TextField < Gosu::TextInput
   
   attr_reader :x, :y
   
-  def initialize(window, font, x, y)
+  def initialize(window, font, x, y, original_text, default_width)
     super()
     
     @window, @font, @x, @y = window, font, x, y
-    
-    self.text = "y = x + 1"
+    @default_width = default_width
+    self.text = original_text
   end
   
   def draw
@@ -56,10 +56,10 @@ class TextField < Gosu::TextInput
   # (Usually one would use clip_to and scroll around on the text field.)
   def width
     text_width = @font.text_width(self.text)
-    if text_width > 600
+    if text_width > @default_width
       return text_width 
     end 
-    600
+    @default_width
   end
   
   def height

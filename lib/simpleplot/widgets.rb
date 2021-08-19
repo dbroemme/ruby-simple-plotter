@@ -214,7 +214,7 @@ module SimplePlot
             @height = height
             add_child(Text.new("Define a Custom Function to Plot", x + 5, y + 5, Gosu::Font.new(32)))
             add_child(Document.new(content, x, y, width, height, 5))
-            @textinput = TextField.new(@window, @font, x + 10, y + 50)
+            @textinput = TextField.new(@window, @font, x + 10, y + 50, "y = x + 1", 600)
             add_child(@textinput)           
             @ok_button = Button.new("OK", center_x - 100, bottom_edge - 26, 100, 0xcc2e4053)
             @cancel_button = Button.new("Cancel", center_x + 50, bottom_edge - 26, 100, 0xcc2e4053)
@@ -233,7 +233,8 @@ module SimplePlot
             Examples:
                 line = x + 1
                 sin = Math.sin(x)
-          HEREDOC
+
+            HEREDOC
         end
 
         def button_down id, mouse_x, mouse_y
@@ -258,6 +259,80 @@ module SimplePlot
                 else 
                     # Mouse click: Select text field based on mouse position.
                     @window.text_input = [@textinput].find { |tf| tf.under_point?(mouse_x, mouse_y) }
+                    # Advanced: Move caret to clicked position
+                    @window.text_input.move_caret(mouse_x) unless @window.text_input.nil?
+                end
+            end
+            WidgetResult.new(false)
+        end
+
+        def add_error_message(msg) 
+            @error_message = ErrorMessage.new(msg, x + 10, y + 94, @font)
+        end 
+
+        def render 
+            if @error_message
+                @error_message.draw 
+            end 
+        end
+    end
+
+    class OpenDataFileForm < Widget 
+        attr_accessor :format_textinput
+
+        def initialize(window, font, x, y, width, height) 
+            super(x, y) 
+            @window = window
+            @font = font
+            @width = width
+            @height = height
+
+            add_child(Text.new("Select a file from the data subdirectory", x + 5, y + 5, @font))
+            add_child(Document.new(content, x, y, width, height, 2))
+            @format_textinput = TextField.new(@window, @font, x + 20, y + height - 80, "t,n,y", 200)
+            add_child(@format_textinput)      
+
+            @ok_button = Button.new("OK", center_x - 100, bottom_edge - 26, 100, COLOR_FORM_BUTTON)
+            @cancel_button = Button.new("Cancel", center_x + 50, bottom_edge - 26, 100, COLOR_FORM_BUTTON)
+            add_child(@ok_button) 
+            add_child(@cancel_button) 
+            @error_message = nil
+
+            @file_table = Table.new(x + 370, y + 64, 400, 300, @font, COLOR_CYAN)
+            files = Dir["./data/*"]
+            files.each do |f|
+                @file_table.add_row([f.to_s], COLOR_WHITE) 
+            end
+            add_child(@file_table) 
+        end
+
+        def content 
+            <<~HEREDOC
+            Enter the format of lines in the file.
+            t - time
+            n - name of data set
+            x - x value
+            y - y value
+
+            Examples:
+              t,x,y
+              n,x,y
+            HEREDOC
+        end
+
+        def button_down id, mouse_x, mouse_y
+            if id == Gosu::KbEscape
+                return WidgetResult.new(true) 
+            elsif id == Gosu::MsLeft
+                if @ok_button.contains_click(mouse_x, mouse_y)
+                    # TODO package up the file name and the format
+                    #      probably in an array
+                    return WidgetResult.new(true, "ok", @format_textinput.text) 
+                elsif @cancel_button.contains_click(mouse_x, mouse_y)
+                    return WidgetResult.new(true) 
+                else 
+                    # Mouse click: Select text field based on mouse position.
+                    @window.text_input = [@format_textinput].find { |tf| tf.under_point?(mouse_x, mouse_y) }
                     # Advanced: Move caret to clicked position
                     @window.text_input.move_caret(mouse_x) unless @window.text_input.nil?
                 end
@@ -354,11 +429,11 @@ module SimplePlot
         attr_accessor :data_rows 
         attr_accessor :row_colors
 
-        def initialize(x, y, width, height, color = COLOR_GRAY) 
+        def initialize(x, y, width, height, font, color = COLOR_GRAY) 
             super(x, y, color) 
             @width = width 
             @height = height
-            @font = Gosu::Font.new(32)
+            @font = font
             clear_rows            
         end
 
@@ -391,17 +466,19 @@ module SimplePlot
             end
 
             x = @x + 10
-            (0..number_of_columns-1).each do |c| 
-                x = x + column_widths[c] + 20
-                Gosu::draw_line x, @y, @color, x, @y + @height, @color
-            end 
+            if number_of_columns > 1
+                (0..number_of_columns-1).each do |c| 
+                    x = x + column_widths[c] + 20
+                    Gosu::draw_line x, @y, @color, x, @y + @height, @color, 20
+                end 
+            end
 
             y = @y 
             i = 0
             @data_rows.each do |row|
                 x = @x + 20
                 (0..number_of_columns-1).each do |c| 
-                    @font.draw_text(row[c], x, y, 1, 1, 1, @row_colors[i])
+                    @font.draw_text(row[c], x, y, 20, 1, 1, @row_colors[i])
                     x = x + column_widths[c] + 20
                 end
                 i = i + 1

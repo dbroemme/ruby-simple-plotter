@@ -52,7 +52,7 @@ class SimplePlotterApp < Gosu::Window
     def draw 
         @plotter.render(width, height, @update_count)
 
-        if is_cursor_on_graph 
+        if is_cursor_on_graph and @plotter.overlay_widget.nil?
             @plotter.draw_cursor_lines(mouse_x, mouse_y)
         end 
     end 
