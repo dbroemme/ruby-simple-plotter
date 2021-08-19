@@ -371,7 +371,9 @@ module SimplePlot
                                         graph_width, graph_height, @axis_labels_color)
             @axis_labels = []
             @metadata = Table.new(x_pixel_to_screen(@margin_size), y_pixel_to_screen(graph_height + 64),
-                                  graph_width - 200, 120, @small_font, COLOR_GRAY)
+                                  graph_width - 200, 120,
+                                  ["#", "Name", "Source"],
+                                  @small_font, COLOR_GRAY, 3)
             @no_data_message = Text.new('Click "Define Function" or "Open Data File" to plot data',
                                         x_pixel_to_screen(@margin_size + 32), y_pixel_to_screen(graph_height + 84),
                                         @small_font, COLOR_CYAN) 
@@ -632,16 +634,17 @@ module SimplePlot
                 @overlay_widget.draw 
             end
             @cursor_readout.draw_border
+            @small_font.draw_text("Cursor", @cursor_readout.x + 4, @cursor_readout.y, 1, 1, 1, COLOR_GRAY)
         end
 
         def draw_cursor_lines(mouse_x, mouse_y)
             x_val, y_val = @plot.draw_cursor_lines(mouse_x, mouse_y)
             @small_font.draw_text("x: #{x_val.round(2).to_s}",
                                   x_pixel_to_screen(@margin_size + graph_width - 186),
-                                  y_pixel_to_screen(graph_height + 70), 1, 1, 1, COLOR_CYAN) 
+                                  y_pixel_to_screen(graph_height + 94), 1, 1, 1, COLOR_GRAY) 
             @small_font.draw_text("y: #{y_val.round(2).to_s}",
                                   x_pixel_to_screen(@margin_size + graph_width - 186),
-                                  y_pixel_to_screen(graph_height + 100), 1, 1, 1, COLOR_CYAN) 
+                                  y_pixel_to_screen(graph_height + 124), 1, 1, 1, COLOR_GRAY) 
         end 
 
         def display_help 
@@ -733,13 +736,21 @@ module SimplePlot
                     calculate_axis_labels
                     update_plot_data_sets  
                 elsif id == Gosu::KbUp
-                    @plot.scroll_up
-                    calculate_axis_labels
-                    update_plot_data_sets  
+                    if @metadata.contains_click(mouse_x, mouse_y)
+                        @metadata.scroll_up 
+                    else
+                        @plot.scroll_up
+                        calculate_axis_labels
+                        update_plot_data_sets 
+                    end 
                 elsif id == Gosu::KbDown
-                    @plot.scroll_down
-                    calculate_axis_labels
-                    update_plot_data_sets  
+                    if @metadata.contains_click(mouse_x, mouse_y)
+                        @metadata.scroll_down
+                    else
+                        @plot.scroll_down
+                        calculate_axis_labels
+                        update_plot_data_sets  
+                    end 
                 elsif id == Gosu::KbRight
                     @plot.scroll_right
                     calculate_axis_labels

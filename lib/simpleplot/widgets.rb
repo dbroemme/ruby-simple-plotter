@@ -299,7 +299,7 @@ module SimplePlot
             add_child(@cancel_button) 
             @error_message = nil
 
-            @file_table = Table.new(x + 370, y + 64, 400, 300, @font, COLOR_CYAN)
+            @file_table = Table.new(x + 370, y + 64, 400, 300, ["Filename"], @font, COLOR_CYAN)
             files = Dir["./data/*"]
             files.each do |f|
                 @file_table.add_row([f.to_s], COLOR_WHITE) 
@@ -322,8 +322,6 @@ module SimplePlot
                 return WidgetResult.new(true) 
             elsif id == Gosu::MsLeft
                 if @ok_button.contains_click(mouse_x, mouse_y)
-                    # TODO package up the file name and the format
-                    #      probably in an array
                     return WidgetResult.new(true, "ok", [@selected_filename, @format_textinput.text]) 
                 elsif @cancel_button.contains_click(mouse_x, mouse_y)
                     return WidgetResult.new(true) 
@@ -435,19 +433,37 @@ module SimplePlot
         attr_accessor :data_rows 
         attr_accessor :row_colors
         attr_accessor :selected_row
+        attr_accessor :headers
+        attr_accessor :max_visible_rows
+        attr_accessor :current_row
 
-        def initialize(x, y, width, height, font, color = COLOR_GRAY) 
+        def initialize(x, y, width, height, headers, font, color = COLOR_GRAY, max_visible_rows = 10) 
             super(x, y, color) 
             @width = width 
             @height = height
+            @headers = headers
             @font = font
+            @current_row = 0
+            @max_visible_rows = max_visible_rows
             clear_rows            
         end
 
+        def scroll_up 
+            if @current_row > 0
+                @current_row = @current_row - @max_visible_rows 
+            end 
+        end 
+
+        def scroll_down
+            if @current_row < @data_rows.size - 1
+                @current_row = @current_row + @max_visible_rows 
+            end 
+        end 
+
         def set_selected_row(mouse_y, column_number)
             relative_y = mouse_y - @y
-            row_number = (relative_y / 30).floor
-            if row_number > data_rows.size - 1
+            row_number = (relative_y / 30).floor - 1
+            if row_number < 0 or row_number > data_rows.size - 1
                 return nil 
             end 
             @selected_row = row_number
@@ -472,7 +488,7 @@ module SimplePlot
             column_widths = []
             number_of_columns = @data_rows[0].size 
             (0..number_of_columns-1).each do |c| 
-                max_length = 0
+                max_length = @font.text_width(headers[c])
                 (0..number_of_rows-1).each do |r|
                     text_pixel_width = @font.text_width(@data_rows[r][c])
                     if text_pixel_width > max_length 
@@ -490,21 +506,32 @@ module SimplePlot
                 end 
             end
 
-            y = @y 
-            i = 0
+            y = @y             
+            x = @x + 20
+            (0..number_of_columns-1).each do |c| 
+                @font.draw_text(@headers[c], x, y, 20, 1, 1, @color)
+                x = x + column_widths[c] + 20
+            end
+            y = y + 30
+
+            count = 0
             @data_rows.each do |row|
-                x = @x + 20
-                (0..number_of_columns-1).each do |c| 
-                    @font.draw_text(row[c], x, y, 20, 1, 1, @row_colors[i])
-                    x = x + column_widths[c] + 20
+                if count < @current_row
+                    # skip
+                elsif count < @current_row + @max_visible_rows
+                    x = @x + 20
+                    (0..number_of_columns-1).each do |c| 
+                        @font.draw_text(row[c], x, y, 20, 1, 1, @row_colors[count])
+                        x = x + column_widths[c] + 20
+                    end
+                    if @selected_row 
+                        if i == @selected_row 
+                            Gosu::draw_rect(@x + 20, y, @width - 30, 28, COLOR_BLACK, 19) 
+                        end 
+                    end
+                    y = y + 30
                 end
-                if @selected_row 
-                    if i == @selected_row 
-                        Gosu::draw_rect(@x + 20, y, @width - 30, 28, COLOR_BLACK, 19) 
-                    end 
-                end
-                i = i + 1
-                y = y + 30
+                count = count + 1
             end
         end
     end
