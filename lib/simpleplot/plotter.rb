@@ -368,7 +368,7 @@ module SimplePlot
             @plot = Plot.new(x_pixel_to_screen(@margin_size), y_pixel_to_screen(0),
                              graph_width, graph_height, @font) 
             @axis_lines = AxisLines.new(x_pixel_to_screen(@margin_size), y_pixel_to_screen(0),
-                                        graph_width, graph_height, @axis_labels_color)
+                                        graph_width, graph_height + 1, @axis_labels_color)
             @axis_labels = []
             @metadata = Table.new(x_pixel_to_screen(@margin_size), y_pixel_to_screen(graph_height + 64),
                                   graph_width - 200, 120,
@@ -383,18 +383,22 @@ module SimplePlot
             @function_button = Button.new("Define Function",
                                           x_pixel_to_screen(10),
                                           y_pixel_to_screen(graph_height + 64),
+                                          @small_font,
                                           180)
             @open_file_button = Button.new("Open Data File",
                                           x_pixel_to_screen(10),
                                           y_pixel_to_screen(graph_height + 94),
+                                          @small_font,
                                           180)
             @help_button = Button.new("Help",
                                        x_pixel_to_screen(10),
                                        y_pixel_to_screen(graph_height + 124),
+                                       @small_font,
                                        180)
             @quit_button = Button.new("Quit",
                                        x_pixel_to_screen(10),
                                        y_pixel_to_screen(graph_height + 154),
+                                       @small_font,
                                        180)
             @cursor_readout = Widget.new(x_pixel_to_screen(@margin_size + graph_width - 190),
                                          y_pixel_to_screen(graph_height + 64),
@@ -631,9 +635,6 @@ module SimplePlot
             @open_file_button.draw
             @help_button.draw 
             @quit_button.draw 
-            if @function_button.is_pressed
-                @textinput.draw
-            end
             if @overlay_widget
                 @overlay_widget.draw 
             end
@@ -659,15 +660,16 @@ module SimplePlot
         def display_help 
             @gui_mode = MODE_HELP
             @overlay_widget = InfoBox.new("Simple Plot Help", help_content,
-                                          x_pixel_to_screen(10), y_pixel_to_screen(10),
+                                          x_pixel_to_screen(10), y_pixel_to_screen(10), @small_font,
                                           @window_width - 20, graph_height)
         end
 
         def display_define_function_form 
             @gui_mode = MODE_DEFINE_FUNCTION
-            @overlay_widget = DefineFunctionForm.new(@window, @font,
+            @overlay_widget = DefineFunctionForm.new(@window, @small_font,
                                                      x_pixel_to_screen(10), y_pixel_to_screen(10),
-                                                     @window_width - 20, graph_height)
+                                                     @window_width - 20, graph_height,
+                                                     @data_set_hash.keys)
             @window.text_input = @overlay_widget.textinput
             @window.text_input.move_caret(1)
         end 

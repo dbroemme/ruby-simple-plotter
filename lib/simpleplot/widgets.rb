@@ -6,7 +6,10 @@ module SimplePlot
         attr_accessor :width
         attr_accessor :height 
         attr_accessor :visible 
-        attr_accessor :children 
+        attr_accessor :children
+        attr_accessor :background_color
+        attr_accessor :border_color
+        attr_accessor :font
 
         def initialize(x, y, color = COLOR_CYAN) 
             @x = x 
@@ -26,6 +29,23 @@ module SimplePlot
             @children = [] 
         end
 
+        def set_background(bgcolor)
+            @background_color = bgcolor 
+        end
+
+        def set_border(bcolor)
+            @border_color = bcolor 
+        end
+
+        def set_font(font)
+            @font = font 
+        end
+
+        def set_dimensions(width, height)
+            @width = width
+            @height = height 
+        end
+
         def right_edge
             @x + @width - 1
         end
@@ -40,8 +60,13 @@ module SimplePlot
 
         def draw 
             if @visible 
-                #puts "About to render #{self.class.name}"
                 render
+                if @background_color
+                    Gosu::draw_rect(@x + 1, @y + 1, @width - 1, @height - 1, @background_color, 2) 
+                end
+                if @border_color 
+                    draw_border(@border_color)
+                end
                 @children.each do |child| 
                     child.draw 
                 end 
@@ -49,8 +74,8 @@ module SimplePlot
         end
 
         def render 
-            # base implementation is empty
-            # the draw method invoked by clients stills renders any added children
+            # Base implementation is empty
+            # Note that the draw method invoked by clients stills renders any added children
             # render is for specific drawing done by the widget
         end 
 
@@ -73,8 +98,8 @@ module SimplePlot
         attr_accessor :str
         def initialize(str, x, y, font, color = COLOR_WHITE) 
             super(x, y, color) 
+            set_font(font)
             @str = str
-            @font = font
         end
         def render 
             @font.draw_text(@str, @x, @y, 10, 1, 1, @color)
@@ -84,14 +109,9 @@ module SimplePlot
     class ErrorMessage < Text
         attr_accessor :str
         def initialize(str, x, y, font) 
-            label = "ERROR: #{str}"
-            super(label, x, y, font, COLOR_RED) 
-            @width = @font.text_width(label) + 4
-            @height = 36
-        end
-        def render 
-            super
-            Gosu::draw_rect(@x, @y, @width, @height, COLOR_BLACK, 9) 
+            super("ERROR: #{str}", x, y, font, COLOR_RED) 
+            set_dimensions(@font.text_width(@str) + 4, 36)
+            set_background(COLOR_BLACK)
         end
     end 
 
@@ -129,10 +149,10 @@ module SimplePlot
         attr_accessor :label
         attr_accessor :is_pressed
 
-        def initialize(label, x, y, width = nil, color = COLOR_DARK_GRAY) 
+        def initialize(label, x, y, font, width = nil, color = COLOR_DARK_GRAY) 
             super(x, y, color) 
+            set_font(font)
             @label = label
-            @font = Gosu::Font.new(24)
             @text_pixel_width = @font.text_width(@label)
             if width.nil?
                 @width = @text_pixel_width + 10
@@ -145,7 +165,6 @@ module SimplePlot
 
         def render 
             draw_border(COLOR_WHITE)
-            #Gosu::draw_rect(@x + 1, @y + 1, @width - 2, @height - 2, @color, 2) 
             text_x = center_x - (@text_pixel_width / 2)
             @font.draw_text(@label, text_x, @y, 10, 1, 1, COLOR_CYAN)
         end 
@@ -155,19 +174,16 @@ module SimplePlot
         attr_accessor :content
         attr_accessor :offset_lines
 
-        def initialize(content, x, y, width, height, offset_lines = 0) 
+        def initialize(content, x, y, width, height, font, offset_lines = 0) 
             super(x, y, COLOR_GRAY) 
+            set_font(font)
+            set_dimensions(width, height)
             @content = content
             @lines = @content.split("\n")
-            @font = Gosu::Font.new(24)
-            @width = width
-            @height = height
             @offset_lines = offset_lines
         end
 
         def render 
-            draw_border(COLOR_WHITE)
-            Gosu::draw_rect(@x + 1, @y + 1, @width - 2, @height - 2, @color, 2) 
             y = @y + 4
             @offset_lines.times do 
                 y = y + 26
@@ -180,15 +196,17 @@ module SimplePlot
     end 
 
     class InfoBox < Widget 
-        def initialize(title, content, x, y, width, height) 
+        def initialize(title, content, x, y, font, width, height) 
             super(x, y) 
-            @width = width
-            @height = height
+            set_font(font)
+            set_dimensions(width, height)
+            set_border(COLOR_WHITE)
             @title = title
             add_child(Text.new(title, x + 5, y + 5, Gosu::Font.new(32)))
-            add_child(Document.new(content, x, y, width, height, 2))
-            @ok_button = Button.new("OK", center_x - 50, bottom_edge - 26, 100, 0xcc2e4053)
+            add_child(Document.new(content, x, y, width, height, font, 2))
+            @ok_button = Button.new("OK", center_x - 50, bottom_edge - 26, @font, 100, COLOR_FORM_BUTTON)
             add_child(@ok_button) 
+            set_background(COLOR_GRAY)
         end
 
         def button_down id, mouse_x, mouse_y
@@ -209,18 +227,18 @@ module SimplePlot
         def initialize(window, font, x, y, width, height, data_set_names) 
             super(x, y) 
             @window = window
-            @font = font
-            @width = width
-            @height = height
+            set_font(font)
+            set_dimensions(width, height)
             add_child(Text.new("Define a Custom Function to Plot", x + 5, y + 5, Gosu::Font.new(32)))
-            add_child(Document.new(content, x, y, width, height, 5))
+            add_child(Document.new(content, x, y, width, height, font, 5))
             @textinput = TextField.new(@window, @font, x + 10, y + 50, "y = x + 1", 600)
             add_child(@textinput)           
-            @ok_button = Button.new("OK", center_x - 100, bottom_edge - 26, 100, 0xcc2e4053)
-            @cancel_button = Button.new("Cancel", center_x + 50, bottom_edge - 26, 100, 0xcc2e4053)
+            @ok_button = Button.new("OK", center_x - 100, bottom_edge - 26, @font, 100, COLOR_FORM_BUTTON)
+            @cancel_button = Button.new("Cancel", center_x + 50, bottom_edge - 26, @font, 100, COLOR_FORM_BUTTON)
             add_child(@ok_button) 
             add_child(@cancel_button) 
             @error_message = nil
+            set_background(COLOR_GRAY)
         end
 
         def content 
@@ -284,17 +302,18 @@ module SimplePlot
         def initialize(window, font, x, y, width, height) 
             super(x, y) 
             @window = window
-            @font = font
-            @width = width
-            @height = height
+            set_font(font)
+            set_dimensions(width, height)
+            set_background(COLOR_GRAY)
+            set_border(COLOR_WHITE)
 
             add_child(Text.new("Select a file from the data subdirectory", x + 5, y + 5, @font))
-            add_child(Document.new(content, x, y, width, height, 2))
+            add_child(Document.new(content, x, y, width, height, font, 2))
             @format_textinput = TextField.new(@window, @font, x + 20, y + 200, "n,x,y", 200)
             add_child(@format_textinput)      
 
-            @ok_button = Button.new("OK", center_x - 100, bottom_edge - 26, 100, COLOR_FORM_BUTTON)
-            @cancel_button = Button.new("Cancel", center_x + 50, bottom_edge - 26, 100, COLOR_FORM_BUTTON)
+            @ok_button = Button.new("OK", center_x - 100, bottom_edge - 26, @font, 100, COLOR_FORM_BUTTON)
+            @cancel_button = Button.new("Cancel", center_x + 50, bottom_edge - 26, @font, 100, COLOR_FORM_BUTTON)
             add_child(@ok_button) 
             add_child(@cancel_button) 
             @error_message = nil
@@ -398,19 +417,6 @@ module SimplePlot
         end
     end
 
-    class AxisLines < Widget
-        def initialize(x, y, width, height, color = COLOR_CYAN) 
-            super x, y, color 
-            @width = width 
-            @height = height
-        end
-
-        def render
-            Gosu::draw_line @x, @y, @color, @x, @y + @height, @color
-            Gosu::draw_line @x, @y + @height, @color, @x + @width, @y + @height, @color
-        end
-    end
-    
     class Line < Widget
         attr_accessor :x2
         attr_accessor :y2
@@ -426,13 +432,26 @@ module SimplePlot
         end
     end 
 
+    class AxisLines < Widget
+        def initialize(x, y, width, height, color = COLOR_CYAN) 
+            super x, y, color 
+            @width = width 
+            @height = height
+        end
+
+        def render
+            add_child(Line.new(@x, @y, @x, bottom_edge, @color))
+            add_child(Line.new(@x, bottom_edge, right_edge, bottom_edge, @color))
+        end
+    end
+
     class VerticalAxisLabel < Widget
         attr_accessor :label
 
         def initialize(x, y, label, font, color = COLOR_CYAN) 
             super x, y, color 
+            set_font(font)
             @label = label 
-            @font = font
         end
 
         def render
@@ -449,8 +468,8 @@ module SimplePlot
 
         def initialize(x, y, label, font, color = COLOR_CYAN) 
             super x, y, color 
+            set_font(font)
             @label = label 
-            @font = font
         end
 
         def render
@@ -470,10 +489,9 @@ module SimplePlot
 
         def initialize(x, y, width, height, headers, font, color = COLOR_GRAY, max_visible_rows = 10) 
             super(x, y, color) 
-            @width = width 
-            @height = height
+            set_font(font) 
+            set_dimensions(width, height)
             @headers = headers
-            @font = font
             @current_row = 0
             @max_visible_rows = max_visible_rows
             clear_rows            
@@ -576,15 +594,14 @@ module SimplePlot
 
         def initialize(x, y, width, height, font) 
             super x, y, color 
-            @width = width 
-            @height = height
+            set_font(font)
+            set_dimensions(width, height)
             @display_grid = false
             @display_lines = true
             @data_set_hash = {}
             @grid_line_color = COLOR_CYAN
             @cursor_line_color = COLOR_DARK_GRAY 
             @zero_line_color = COLOR_BLUE 
-            @font = font
             @zoom_level = 1
         end
 
