@@ -334,6 +334,117 @@ module SimplePlot
         end
     end 
 
+    class DefineFunctionForm < Dialog 
+        def initialize(window, font, x, y, width, height, data_set_names) 
+            super(window, font, x, y, width, height, "Define a Custom Function to Plot", "y = x + 1")
+            @data_set_names = data_set_names
+        end
+
+        def content 
+            <<~HEREDOC
+            The expression must be a valid Ruby assignment statement.
+            The data set will be given the name on the left-hand side.
+            Every expression must include the variable x. You define the y-axis value.
+                data_set_name = math_expression_that_includes_x
+
+            Examples:
+                line = x + 1
+                sin = Math.sin(x)
+
+            HEREDOC
+        end
+
+        def handle_ok
+            x = 1
+            # TODO Add other data sets in the context for evaluation
+            begin 
+                y = eval(@textinput.text)
+                # TODO it still might not contain the x variable
+                #      which we need to have a plot
+            rescue => e
+                parts = e.to_s.partition("SimplePlot")
+                add_error_message(parts[0][0..-8])
+                return WidgetResult.new(false)
+            end
+            return WidgetResult.new(true, "ok", @textinput.text) 
+        end
+    end
+
+    class OpenDataFileForm < Dialog 
+        attr_accessor :selected_filename
+
+        def initialize(window, font, x, y, width, height) 
+            super(window, font,x, y, width, height, "Select a file from the data subdirectory", "n,x,y") 
+
+            @file_table = Table.new(x + 370, y + 60, 400, 150, ["Filename"], @font, COLOR_CYAN, 4)
+            files = Dir["./data/*"]
+            files.each do |f|
+                @file_table.add_row([f.to_s], COLOR_WHITE) 
+            end
+            add_child(@file_table) 
+
+            @preview = Widget.new(x + 5, y + 220, COLOR_CYAN)
+            @preview.width = @width - 15
+            @preview.height = 100
+            @preview_content = nil
+            add_child(Text.new("Data Preview", @preview.x + 5, @preview.y + 5, @font, COLOR_CYAN))
+        end
+
+        def content 
+            <<~HEREDOC
+            Enter the format of lines in the file.
+            t - time
+            n - name of data set
+            x - x value
+            y - y value
+            HEREDOC
+        end
+
+        def handle_ok
+            return WidgetResult.new(true, "ok", [@selected_filename, @textinput.text]) 
+        end 
+
+        def handle_up(mouse_x, mouse_y)
+            @file_table.scroll_up
+        end
+
+        def handle_down(mouse_x, mouse_y)
+            @file_table.scroll_down
+        end
+
+        def handle_mouse_click(mouse_x, mouse_y)
+            if @file_table.contains_click(mouse_x, mouse_y)
+                val = @file_table.set_selected_row(mouse_y, 0)
+                if val.nil?
+                    # nothing to do
+                else 
+                    @selected_filename = val
+                    # Try to read this file and get preview content
+                    if File.exist?(@selected_filename)
+                        @preview_content = []
+                        File.readlines(@selected_filename).each do |line|
+                            if @preview_content.size < 2
+                                @preview_content << line
+                            end 
+                        end 
+                    end
+                end 
+            end
+        end
+
+        def render 
+            super
+            @preview.draw_border
+            if @preview_content
+                y = @preview.y + 40
+                @preview_content.each do |line|
+                    @font.draw_text(line, @preview.x + 7, y, 10, 1, 1, COLOR_WHITE)
+                    y = y + 26
+                end
+            end
+        end
+    end
+
     class SimplePlot
         attr_accessor :widget_width
         attr_accessor :widget_height
@@ -679,7 +790,7 @@ module SimplePlot
             @overlay_widget = OpenDataFileForm.new(@window, @small_font,
                                                    x_pixel_to_screen(10), y_pixel_to_screen(10),
                                                    @window_width - 20, graph_height)
-            @window.text_input = @overlay_widget.format_textinput
+            @window.text_input = @overlay_widget.textinput
             @window.text_input.move_caret(1)
         end 
 

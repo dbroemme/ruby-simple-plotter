@@ -171,23 +171,17 @@ module SimplePlot
     end 
 
     class Document < Widget
-        attr_accessor :content
-        attr_accessor :offset_lines
+        attr_accessor :lines
 
-        def initialize(content, x, y, width, height, font, offset_lines = 0) 
+        def initialize(content, x, y, width, height, font) 
             super(x, y, COLOR_GRAY) 
             set_font(font)
             set_dimensions(width, height)
-            @content = content
-            @lines = @content.split("\n")
-            @offset_lines = offset_lines
+            @lines = content.split("\n")
         end
 
         def render 
             y = @y + 4
-            @offset_lines.times do 
-                y = y + 26
-            end
             @lines.each do |line|
                 @font.draw_text(line, @x + 5, y, 10, 1, 1, COLOR_WHITE)
                 y = y + 26
@@ -203,7 +197,7 @@ module SimplePlot
             set_border(COLOR_WHITE)
             @title = title
             add_child(Text.new(title, x + 5, y + 5, Gosu::Font.new(32)))
-            add_child(Document.new(content, x, y, width, height, font, 2))
+            add_child(Document.new(content, x + 5, y + 52, width, height, font))
             @ok_button = Button.new("OK", center_x - 50, bottom_edge - 26, @font, 100, COLOR_FORM_BUTTON)
             add_child(@ok_button) 
             set_background(COLOR_GRAY)
@@ -221,169 +215,38 @@ module SimplePlot
         end
     end
 
-    class DefineFunctionForm < Widget 
+    class Dialog < Widget
         attr_accessor :textinput
 
-        def initialize(window, font, x, y, width, height, data_set_names) 
-            super(x, y) 
-            @window = window
-            set_font(font)
-            set_dimensions(width, height)
-            add_child(Text.new("Define a Custom Function to Plot", x + 5, y + 5, Gosu::Font.new(32)))
-            add_child(Document.new(content, x, y, width, height, font, 5))
-            @textinput = TextField.new(@window, @font, x + 10, y + 50, "y = x + 1", 600)
-            add_child(@textinput)           
-            @ok_button = Button.new("OK", center_x - 100, bottom_edge - 26, @font, 100, COLOR_FORM_BUTTON)
-            @cancel_button = Button.new("Cancel", center_x + 50, bottom_edge - 26, @font, 100, COLOR_FORM_BUTTON)
-            add_child(@ok_button) 
-            add_child(@cancel_button) 
-            @error_message = nil
-            set_background(COLOR_GRAY)
-        end
-
-        def content 
-            <<~HEREDOC
-            The expression must be a valid Ruby assignment statement.
-            The data set will be given the name on the left-hand side.
-            Every expression must include the variable x. You define the y-axis value.
-                data_set_name = math_expression_that_includes_x
-
-            Examples:
-                line = x + 1
-                sin = Math.sin(x)
-
-            HEREDOC
-        end
-
-        def button_down id, mouse_x, mouse_y
-            if id == Gosu::KbEscape
-                return WidgetResult.new(true) 
-            elsif id == Gosu::MsLeft
-                if @ok_button.contains_click(mouse_x, mouse_y)
-                    x = 1
-                    # TODO Add other data sets in the context for evaluation
-                    begin 
-                        y = eval(@textinput.text)
-                        # TODO it still might not contain the x variable
-                        #      which we need to have a plot
-                    rescue => e
-                        parts = e.to_s.partition("SimplePlot")
-                        add_error_message(parts[0][0..-8])
-                        return WidgetResult.new(false)
-                    end
-                    return WidgetResult.new(true, "ok", @textinput.text) 
-                elsif @cancel_button.contains_click(mouse_x, mouse_y)
-                    return WidgetResult.new(true) 
-                else 
-                    # Mouse click: Select text field based on mouse position.
-                    @window.text_input = [@textinput].find { |tf| tf.under_point?(mouse_x, mouse_y) }
-                    # Advanced: Move caret to clicked position
-                    @window.text_input.move_caret(mouse_x) unless @window.text_input.nil?
-                end
-            end
-            WidgetResult.new(false)
-        end
-
-        def add_error_message(msg) 
-            @error_message = ErrorMessage.new(msg, x + 10, y + 94, @font)
-        end 
-
-        def render 
-            if @error_message
-                @error_message.draw 
-            end 
-        end
-    end
-
-    class OpenDataFileForm < Widget 
-        attr_accessor :format_textinput
-        attr_accessor :selected_filename
-
-        def initialize(window, font, x, y, width, height) 
+        def initialize(window, font, x, y, width, height, title, text_input_default) 
             super(x, y) 
             @window = window
             set_font(font)
             set_dimensions(width, height)
             set_background(COLOR_GRAY)
             set_border(COLOR_WHITE)
+            @error_message = nil
 
-            add_child(Text.new("Select a file from the data subdirectory", x + 5, y + 5, @font))
-            add_child(Document.new(content, x, y, width, height, font, 2))
-            @format_textinput = TextField.new(@window, @font, x + 20, y + 200, "n,x,y", 200)
-            add_child(@format_textinput)      
+            add_child(Text.new(title, x + 5, y + 5, @font))
+            # Forms automatically have some explanatory content
+            add_child(Document.new(content, x, y + 56, width, height, font))
 
+            # Forms automatically get a text input widget
+            @textinput = TextField.new(@window, @font, x + 10, bottom_edge - 80, text_input_default, 600)
+            add_child(@textinput)
+
+            # Forms automatically get OK and Cancel buttons
             @ok_button = Button.new("OK", center_x - 100, bottom_edge - 26, @font, 100, COLOR_FORM_BUTTON)
             @cancel_button = Button.new("Cancel", center_x + 50, bottom_edge - 26, @font, 100, COLOR_FORM_BUTTON)
             add_child(@ok_button) 
-            add_child(@cancel_button) 
-            @error_message = nil
-
-            @file_table = Table.new(x + 370, y + 64, 400, 180, ["Filename"], @font, COLOR_CYAN, 5)
-            files = Dir["./data/*"]
-            files.each do |f|
-                @file_table.add_row([f.to_s], COLOR_WHITE) 
-            end
-            add_child(@file_table) 
-
-            @preview = Widget.new(x + 5, y + 260, COLOR_CYAN)
-            @preview.width = @width - 15
-            @preview.height = 100
-            @preview_content = nil
-            add_child(Text.new("Data Preview", @preview.x + 5, @preview.y + 5, @font, COLOR_CYAN))
+            add_child(@cancel_button)
         end
 
         def content 
             <<~HEREDOC
-            Enter the format of lines in the file.
-            t - time
-            n - name of data set
-            x - x value
-            y - y value
+            Override the content method to
+            put your info here.
             HEREDOC
-        end
-
-        def button_down id, mouse_x, mouse_y
-            if id == Gosu::KbEscape
-                return WidgetResult.new(true) 
-            elsif id == Gosu::KbUp
-                if @file_table.contains_click(mouse_x, mouse_y)
-                    @file_table.scroll_up
-                end
-            elsif id == Gosu::KbDown
-                if @file_table.contains_click(mouse_x, mouse_y)
-                    @file_table.scroll_down
-                end
-            elsif id == Gosu::MsLeft
-                if @ok_button.contains_click(mouse_x, mouse_y)
-                    return WidgetResult.new(true, "ok", [@selected_filename, @format_textinput.text]) 
-                elsif @cancel_button.contains_click(mouse_x, mouse_y)
-                    return WidgetResult.new(true) 
-                else 
-                    # Mouse click: Select text field based on mouse position.
-                    @window.text_input = [@format_textinput].find { |tf| tf.under_point?(mouse_x, mouse_y) }
-                    # Advanced: Move caret to clicked position
-                    @window.text_input.move_caret(mouse_x) unless @window.text_input.nil?
-
-                    if @file_table.contains_click(mouse_x, mouse_y)
-                        val = @file_table.set_selected_row(mouse_y, 0)
-                        if val.nil?
-                            # nothing to do
-                        else 
-                            @selected_filename = val
-                            # Try to read this file and get preview content
-                            if File.exist?(@selected_filename)
-                                @preview_content = []
-                                File.readlines(@selected_filename).each do |line|
-                                    if @preview_content.size < 2
-                                        @preview_content << line
-                                    end 
-                                end 
-                            end
-                        end 
-                    end
-                end
-            end
-            WidgetResult.new(false)
         end
 
         def add_error_message(msg) 
@@ -391,19 +254,60 @@ module SimplePlot
         end 
 
         def render 
-            @preview.draw_border
-            if @preview_content
-                y = @preview.y + 40
-                @preview_content.each do |line|
-                    @font.draw_text(line, @preview.x + 7, y, 10, 1, 1, COLOR_WHITE)
-                    y = y + 26
-                end
-            end
             if @error_message
                 @error_message.draw 
             end 
         end
-    end
+
+        def handle_ok
+            # Default behavior is to do nothing except tell the caller to 
+            # close the dialog
+            return WidgetResult.new(true) 
+        end
+
+        def handle_cancel
+            # Default behavior is to do nothing except tell the caller to 
+            # close the dialog
+            return WidgetResult.new(true) 
+        end
+
+        def handle_up(mouse_x, mouse_y)
+            # empty implementation of up arrow
+        end
+
+        def handle_down(mouse_x, mouse_y)
+            # empty implementation of down arrow
+        end
+
+        def handle_mouse_click(mouse_x, mouse_y)
+            # empty implementation of mouse click outside
+            # of standard form elements in this dialog
+        end
+
+        def button_down id, mouse_x, mouse_y
+            if id == Gosu::KbEscape
+                return WidgetResult.new(true) 
+            elsif id == Gosu::KbUp
+                handle_up(mouse_x, mouse_y)
+            elsif id == Gosu::KbDown
+                handle_down(mouse_x, mouse_y)
+            elsif id == Gosu::MsLeft
+                if @ok_button.contains_click(mouse_x, mouse_y)
+                    return handle_ok
+                elsif @cancel_button.contains_click(mouse_x, mouse_y)
+                    return handle_cancel 
+                else 
+                    # Mouse click: Select text field based on mouse position.
+                    @window.text_input = [@textinput].find { |tf| tf.under_point?(mouse_x, mouse_y) }
+                    # Advanced: Move caret to clicked position
+                    @window.text_input.move_caret(mouse_x) unless @window.text_input.nil?
+
+                    handle_mouse_click(mouse_x, mouse_y)
+                end
+            end
+            WidgetResult.new(false)
+        end
+    end 
 
     class WidgetResult 
         attr_accessor :close_widget
