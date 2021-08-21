@@ -284,6 +284,11 @@ module SimplePlot
             # of standard form elements in this dialog
         end
 
+        def text_input_updated(text)
+            # empty implementation of text being updated
+            # in text widget
+        end 
+
         def button_down id, mouse_x, mouse_y
             if id == Gosu::KbEscape
                 return WidgetResult.new(true) 
@@ -303,6 +308,10 @@ module SimplePlot
                     @window.text_input.move_caret(mouse_x) unless @window.text_input.nil?
 
                     handle_mouse_click(mouse_x, mouse_y)
+                end
+            else 
+                if @window.text_input
+                    text_input_updated(@textinput.text)
                 end
             end
             WidgetResult.new(false)
@@ -433,9 +442,12 @@ module SimplePlot
             @row_colors << color
         end
 
+        def number_of_rows 
+            @data_rows.size 
+        end
+
         def render
             draw_border
-            number_of_rows = @data_rows.size
             return unless number_of_rows > 0
 
             column_widths = []

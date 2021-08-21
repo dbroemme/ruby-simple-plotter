@@ -374,7 +374,7 @@ module SimplePlot
         attr_accessor :selected_filename
 
         def initialize(window, font, x, y, width, height) 
-            super(window, font,x, y, width, height, "Select a file from the data subdirectory", "n,x,y") 
+            super(window, font, x, y, width, height, "Select a file from the data subdirectory", "n,x,y") 
 
             @file_table = Table.new(x + 370, y + 60, 400, 150, ["Filename"], @font, COLOR_CYAN, 4)
             files = Dir["./data/*"]
@@ -383,11 +383,9 @@ module SimplePlot
             end
             add_child(@file_table) 
 
-            @preview = Widget.new(x + 5, y + 220, COLOR_CYAN)
-            @preview.width = @width - 15
-            @preview.height = 100
-            @preview_content = nil
-            add_child(Text.new("Data Preview", @preview.x + 5, @preview.y + 5, @font, COLOR_CYAN))
+            @preview = Table.new(x + 5, y + 216, @width - 15, 90,
+                                ["Data Preview"], @font, COLOR_CYAN, 3)
+            add_child(@preview)
         end
 
         def content 
@@ -421,15 +419,20 @@ module SimplePlot
                     @selected_filename = val
                     # Try to read this file and get preview content
                     if File.exist?(@selected_filename)
-                        @preview_content = []
+                        @preview.clear_rows
+                        @preview.headers = @textinput.text.split(",")
                         File.readlines(@selected_filename).each do |line|
-                            if @preview_content.size < 2
-                                @preview_content << line
+                            if @preview.number_of_rows < 2
+                                @preview.add_row(line.split(","), COLOR_CYAN)
                             end 
                         end 
                     end
                 end 
             end
+        end
+
+        def text_input_updated(text)
+            @preview.headers = @textinput.text.split(",")
         end
 
         def render 
