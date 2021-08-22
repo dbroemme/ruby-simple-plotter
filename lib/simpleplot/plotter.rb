@@ -387,7 +387,7 @@ module SimplePlot
         def initialize(window, font, x, y, width, height) 
             super(window, font, x, y, width, height, "Select a file from the data subdirectory", "n,x,y") 
 
-            @file_table = Table.new(x + 370, y + 60, 400, 150, ["Filename"], @font, COLOR_CYAN, 4)
+            @file_table = SingleSelectTable.new(x + 370, y + 60, 400, 150, ["Filename"], @font, COLOR_CYAN, 4)
             files = Dir["./data/*"]
             files.each do |f|
                 @file_table.add_row([f.to_s], COLOR_WHITE) 

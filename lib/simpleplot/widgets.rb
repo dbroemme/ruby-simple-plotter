@@ -395,7 +395,6 @@ module SimplePlot
     class Table < Widget
         attr_accessor :data_rows 
         attr_accessor :row_colors
-        attr_accessor :selected_row
         attr_accessor :headers
         attr_accessor :max_visible_rows
         attr_accessor :current_row
@@ -421,16 +420,6 @@ module SimplePlot
                 @current_row = @current_row + @max_visible_rows 
             end 
         end 
-
-        def set_selected_row(mouse_y, column_number)
-            relative_y = mouse_y - @y
-            row_number = (relative_y / 30).floor - 1
-            if row_number < 0 or row_number > data_rows.size - 1
-                return nil 
-            end 
-            @selected_row = @current_row + row_number
-            @data_rows[@selected_row][column_number]
-        end
 
         def clear_rows 
             @data_rows = []
@@ -489,17 +478,40 @@ module SimplePlot
                         @font.draw_text(row[c], x, y, 20, 1, 1, @row_colors[count])
                         x = x + column_widths[c] + 20
                     end
-                    if @selected_row 
-                        if count == @selected_row 
-                            Gosu::draw_rect(@x + 20, y, @width - 30, 28, COLOR_BLACK, 19) 
-                        end 
-                    end
                     y = y + 30
                 end
                 count = count + 1
             end
         end
     end
+
+    class SingleSelectTable < Table
+        attr_accessor :selected_row
+
+        def initialize(x, y, width, height, headers, font, color = COLOR_GRAY, max_visible_rows = 10) 
+            super(x, y, width, height, headers, font, color, max_visible_rows) 
+        end 
+
+        def set_selected_row(mouse_y, column_number)
+            relative_y = mouse_y - @y
+            row_number = (relative_y / 30).floor - 1
+            if row_number < 0 or row_number > data_rows.size - 1
+                return nil 
+            end 
+            @selected_row = @current_row + row_number
+            @data_rows[@selected_row][column_number]
+        end
+
+        def render 
+            super 
+            if @selected_row 
+                if @selected_row >= @current_row and @selected_row < @current_row + @max_visible_rows
+                    y = @y + 30 + ((@selected_row - @current_row) * 30)
+                    Gosu::draw_rect(@x + 20, y, @width - 30, 28, COLOR_BLACK, 19) 
+                end 
+            end
+        end
+    end 
 
     class Plot < Widget
         attr_accessor :points
