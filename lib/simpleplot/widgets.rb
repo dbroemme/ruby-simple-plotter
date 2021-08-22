@@ -483,6 +483,15 @@ module SimplePlot
                 count = count + 1
             end
         end
+
+        def determine_row_number(mouse_y)
+            relative_y = mouse_y - @y
+            row_number = (relative_y / 30).floor - 1
+            if row_number < 0 or row_number > data_rows.size - 1
+                return nil 
+            end 
+            row_number
+        end
     end
 
     class SingleSelectTable < Table
@@ -493,13 +502,11 @@ module SimplePlot
         end 
 
         def set_selected_row(mouse_y, column_number)
-            relative_y = mouse_y - @y
-            row_number = (relative_y / 30).floor - 1
-            if row_number < 0 or row_number > data_rows.size - 1
-                return nil 
-            end 
-            @selected_row = @current_row + row_number
-            @data_rows[@selected_row][column_number]
+            row_number = determine_row_number(mouse_y)
+            if not row_number.nil?
+                @selected_row = @current_row + row_number
+                @data_rows[@selected_row][column_number]
+            end
         end
 
         def render 
@@ -509,6 +516,55 @@ module SimplePlot
                     y = @y + 30 + ((@selected_row - @current_row) * 30)
                     Gosu::draw_rect(@x + 20, y, @width - 30, 28, COLOR_BLACK, 19) 
                 end 
+            end
+        end
+    end 
+
+    class MultiSelectTable < Table
+        attr_accessor :selected_rows
+        attr_accessor :selection_color
+
+        def initialize(x, y, width, height, headers, font, color = COLOR_GRAY, max_visible_rows = 10) 
+            super(x, y, width, height, headers, font, color, max_visible_rows) 
+            @selected_rows = []
+            @selection_color = COLOR_LIGHT_GRAY
+        end 
+
+        def is_row_selected(mouse_y)
+            row_number = determine_row_number(mouse_y)
+            @selected_rows.include?(@current_row + row_number)
+        end 
+
+        def set_selected_row(mouse_y, column_number)
+            row_number = determine_row_number(mouse_y)
+            if not row_number.nil?
+                this_selected_row = @current_row + row_number
+                @selected_rows << this_selected_row
+                return @data_rows[this_selected_row][column_number]
+            end
+            nil
+        end
+
+        def unset_selected_row(mouse_y, column_number) 
+            row_number = determine_row_number(mouse_y) 
+            if not row_number.nil?
+                this_selected_row = @current_row + row_number
+                @selected_rows.delete(this_selected_row)
+                return @data_rows[this_selected_row][column_number]
+            end 
+            nil
+        end
+
+        def render 
+            super 
+            y = @y + 30
+            row_count = @current_row
+            while row_count < @data_rows.size
+                if @selected_rows.include? row_count
+                    Gosu::draw_rect(@x + 20, y, @width - 3, 28, @selection_color, 19) 
+                end 
+                y = y + 30
+                row_count = row_count + 1
             end
         end
     end 
@@ -643,11 +699,13 @@ module SimplePlot
         def render
             @data_set_hash.keys.each do |key|
                 data_set = @data_set_hash[key]
-                data_set.rendered_points.each do |point| 
-                    point.draw 
-                end 
-                if @display_lines 
-                    display_lines_for_point_set(data_set.rendered_points) 
+                if data_set.visible
+                    data_set.rendered_points.each do |point| 
+                        point.draw 
+                    end 
+                    if @display_lines 
+                        display_lines_for_point_set(data_set.rendered_points) 
+                    end
                 end
             end
             if @display_grid and range_set?

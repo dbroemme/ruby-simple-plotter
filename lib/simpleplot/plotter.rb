@@ -34,8 +34,9 @@ module SimplePlot
     COLOR_LIME = Gosu::Color.argb(0xffDAF7A6)
     COLOR_YELLOW = Gosu::Color.argb(0xffFFC300)
     COLOR_MAROON = Gosu::Color.argb(0xffC70039)
+    COLOR_LIGHT_GRAY = Gosu::Color.argb(0xff2c3e50)
     COLOR_GRAY = Gosu::Color::GRAY
-    COLOR_OFF_GRAY = Gosu::Color.argb(0xffa2b3b9)
+    COLOR_OFF_GRAY = Gosu::Color.argb(0xff566573)
     COLOR_LIGHT_BLACK = Gosu::Color.argb(0xff111111)
     COLOR_LIGHT_RED = Gosu::Color.argb(0xffe6b0aa)
     COLOR_CYAN = Gosu::Color::CYAN
@@ -167,6 +168,7 @@ module SimplePlot
         attr_accessor :rendered_points 
         attr_accessor :data_point_size
         attr_accessor :source_filename
+        attr_accessor :visible
 
         def initialize(name, data_points, color, is_time_based = false, data_point_size = 4) 
             @name = name 
@@ -174,11 +176,16 @@ module SimplePlot
             @data_points = data_points
             @is_time_based = is_time_based
             @data_point_size = data_point_size
+            @visible = true
             clear_rendered_points
             if data_points
                 calculate_range
             end
         end
+
+        def toggle_visibility 
+            @visible = !@visible
+        end 
 
         def source_display 
             if @source_filename.nil?
@@ -498,7 +505,8 @@ module SimplePlot
             @axis_lines = AxisLines.new(x_pixel_to_screen(@margin_size), y_pixel_to_screen(0),
                                         graph_width, graph_height + 1, @axis_labels_color)
             @axis_labels = []
-            @metadata = Table.new(x_pixel_to_screen(@margin_size), y_pixel_to_screen(graph_height + 64),
+            @metadata = MultiSelectTable.new(
+                                  x_pixel_to_screen(@margin_size), y_pixel_to_screen(graph_height + 64),
                                   graph_width - 200, 120,
                                   ["#", "Name", "Source"],
                                   @small_font, COLOR_GRAY, 3)
@@ -886,6 +894,14 @@ module SimplePlot
                     display_help 
                 elsif @quit_button.contains_click(mouse_x, mouse_y)
                     return WidgetResult.new(true)
+                elsif @metadata.contains_click(mouse_x, mouse_y)
+                    if @metadata.is_row_selected(mouse_y)
+                        data_set_name = @metadata.unset_selected_row(mouse_y, 1)
+                        @data_set_hash[data_set_name].toggle_visibility
+                    else 
+                        data_set_name = @metadata.set_selected_row(mouse_y, 1)
+                        @data_set_hash[data_set_name].toggle_visibility
+                    end
                 elsif @gui_mode == MODE_PLOT and is_cursor_on_graph(mouse_x, mouse_y)
                     @click_x = mouse_x
                     @click_y = mouse_y
