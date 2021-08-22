@@ -12,7 +12,14 @@ Follow me on Twitter at https://twitter.com/DarrenBroemmer for news and announce
 
 ## Installation
 
-Simply clone the repo and use one of the run scripts to get started. There are a few samples you can use. Data can be plotted either from a csv file or through a custom defined function. Multiple data sets can be plotted on the same graph.
+Simply clone the repo, run the setup script as shown below, and use one of the run scripts to get started. There are a few samples you can use. Data can be plotted either from a csv file or through a custom defined function. Multiple data sets can be plotted on the same graph.
+
+```
+git clone https://github.com/dbroemme/ruby-simple-plotter.git
+cd ruby-simple-plotter
+./bin/setup
+./plot-example-file-crypto
+```
 
 ## Plotting data from a file
 
