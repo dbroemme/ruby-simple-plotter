@@ -16,7 +16,7 @@ class SimplePlotterApp < Gosu::Window
         @font = Gosu::Font.new(32)
         @title_font = Gosu::Font.new(38)
         @version_font = Gosu::Font.new(22)
-        @banner_image = Gosu::Image.new("./media/Banner.jpg")
+        @banner_image = Gosu::Image.new("./media/Banner.png")
         @update_count = 0
         @pause = false
     end 
