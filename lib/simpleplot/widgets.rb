@@ -109,9 +109,8 @@ module SimplePlot
     class ErrorMessage < Text
         attr_accessor :str
         def initialize(str, x, y, font) 
-            super("ERROR: #{str}", x, y, font, COLOR_RED) 
+            super("ERROR: #{str}", x, y, font, COLOR_ERROR_CODE_RED) 
             set_dimensions(@font.text_width(@str) + 4, 36)
-            set_background(COLOR_BLACK)
         end
     end 
 
@@ -149,7 +148,7 @@ module SimplePlot
         attr_accessor :label
         attr_accessor :is_pressed
 
-        def initialize(label, x, y, font, width = nil, color = COLOR_DARK_GRAY) 
+        def initialize(label, x, y, font, width = nil, color = COLOR_DARK_GRAY, text_color = COLOR_HEADER_BRIGHT_BLUE) 
             super(x, y, color) 
             set_font(font)
             @label = label
@@ -161,12 +160,13 @@ module SimplePlot
             end
             @height = 26
             @is_pressed = false
+            @text_color = text_color
         end
 
         def render 
             draw_border(COLOR_WHITE)
             text_x = center_x - (@text_pixel_width / 2)
-            @font.draw_text(@label, text_x, @y, 10, 1, 1, COLOR_CYAN)
+            @font.draw_text(@label, text_x, @y, 10, 1, 1, @text_color)
         end 
     end 
 
@@ -223,7 +223,7 @@ module SimplePlot
             @window = window
             set_font(font)
             set_dimensions(width, height)
-            set_background(COLOR_GRAY)
+            set_background(0xff566573 )
             set_border(COLOR_WHITE)
             @error_message = nil
 
@@ -236,8 +236,8 @@ module SimplePlot
             add_child(@textinput)
 
             # Forms automatically get OK and Cancel buttons
-            @ok_button = Button.new("OK", center_x - 100, bottom_edge - 26, @font, 100, COLOR_FORM_BUTTON)
-            @cancel_button = Button.new("Cancel", center_x + 50, bottom_edge - 26, @font, 100, COLOR_FORM_BUTTON)
+            @ok_button = Button.new("OK", center_x - 100, bottom_edge - 26, @font, 100, COLOR_FORM_BUTTON, COLOR_WHITE)
+            @cancel_button = Button.new("Cancel", center_x + 50, bottom_edge - 26, @font, 100, COLOR_FORM_BUTTON, COLOR_WHITE)
             add_child(@ok_button) 
             add_child(@cancel_button)
         end
@@ -250,7 +250,7 @@ module SimplePlot
         end
 
         def add_error_message(msg) 
-            @error_message = ErrorMessage.new(msg, x + 10, y + 94, @font)
+            @error_message = ErrorMessage.new(msg, x + 10, bottom_edge - 120, @font)
         end 
 
         def render 
@@ -641,7 +641,7 @@ module SimplePlot
             @data_set_hash.keys.each do |key|
                 data_set = @data_set_hash[key]
                 puts "Calling derive values on #{key}"
-                data_set.derive_values(range)
+                data_set.derive_values(range, @data_set_hash)
             end
         end 
 
@@ -657,7 +657,7 @@ module SimplePlot
             if range_set?
                 @data_set_hash[data_set.name] = data_set
                 data_set.clear_rendered_points
-                data_set.derive_values(@visible_range)
+                data_set.derive_values(@visible_range, @data_set_hash)
                 data_set.data_points.each do |point|
                     if is_on_screen(point) 
                         #puts "Adding render point at x #{point.x}, #{Time.at(point.x)}"

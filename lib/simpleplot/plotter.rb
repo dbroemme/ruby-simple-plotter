@@ -40,11 +40,14 @@ module SimplePlot
     COLOR_LIGHT_BLACK = Gosu::Color.argb(0xff111111)
     COLOR_LIGHT_RED = Gosu::Color.argb(0xffe6b0aa)
     COLOR_CYAN = Gosu::Color::CYAN
+    COLOR_HEADER_BLUE = Gosu::Color.argb(0xff089FCE)
+    COLOR_HEADER_BRIGHT_BLUE = Gosu::Color.argb(0xff0FAADD)
     COLOR_BLUE = Gosu::Color::BLUE
     COLOR_DARK_GRAY = Gosu::Color.argb(0xccf0f3f4)
     COLOR_RED = Gosu::Color::RED
     COLOR_BLACK = Gosu::Color::BLACK
     COLOR_FORM_BUTTON = Gosu::Color.argb(0xcc2e4053)
+    COLOR_ERROR_CODE_RED = Gosu::Color.argb(0xffe6b0aa)
 
     DEFAULT_COLORS = [
         COLOR_PEACH,
@@ -197,7 +200,7 @@ module SimplePlot
             @source_filename
         end 
 
-        def derive_values(visible_range)
+        def derive_values(visible_range, data_hash)
             # Base implementation is empty
             # Explicit data sets do not need to derive data
         end 
@@ -330,7 +333,7 @@ module SimplePlot
             @function_str
         end 
 
-        def derive_values(visible_range)
+        def derive_values(visible_range, data_hash)
             @data_points = []
             x = visible_range.left_x
             while x < visible_range.right_x 
@@ -374,11 +377,14 @@ module SimplePlot
 
         def handle_ok
             x = 1
-            # TODO Add other data sets in the context for evaluation
+            code = ""
+            # Add other data sets in the context for evaluation
+            @data_set_names.each do |dsn| 
+                code = "#{code}\n#{dsn} = 1"
+            end
+            code = "#{code}\n#{@textinput.text}"
             begin 
-                y = eval(@textinput.text)
-                # TODO it still might not contain the x variable
-                #      which we need to have a plot
+                y = eval(code)
             rescue => e
                 parts = e.to_s.partition("SimplePlot")
                 add_error_message(parts[0][0..-8])
@@ -490,7 +496,7 @@ module SimplePlot
             @data_set_hash = {}
             @range_stack = []
 
-            @axis_labels_color = COLOR_CYAN
+            @axis_labels_color = COLOR_HEADER_BRIGHT_BLUE
             @data_point_size = 4
             @font = Gosu::Font.new(32)
             @small_font = Gosu::Font.new(24)
