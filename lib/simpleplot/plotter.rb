@@ -458,10 +458,12 @@ module SimplePlot
         attr_accessor :range
         attr_accessor :gui_mode
         attr_accessor :overlay_widget
+        attr_accessor :display_metadata
 
         def initialize(window, width, height, start_x = 0, start_y = 0)
             @window = window
             @gui_mode = MODE_PLOT
+            @display_metadata = true
             ########################################
             # top left origin of widget on screen  #
             ########################################
@@ -741,20 +743,6 @@ module SimplePlot
                 label.draw 
             end
             @plot.draw
-            @metadata.draw
-            if @data_set_hash.empty?
-                @no_data_message_1.draw
-                @no_data_message_2.draw
-            end
-            @function_button.draw 
-            @open_file_button.draw
-            @help_button.draw 
-            @quit_button.draw 
-            if @overlay_widget
-                @overlay_widget.draw 
-            end
-            @cursor_readout.draw_border
-            @small_font.draw_text("Cursor", @cursor_readout.x + 4, @cursor_readout.y, 1, 1, 1, COLOR_GRAY)
             if @gui_mode == MODE_ZOOM_BOX
                 Gosu::draw_line @click_x, @click_y, COLOR_GRAY, mouse_x, @click_y, COLOR_GRAY, 12
                 Gosu::draw_line @click_x, @click_y, COLOR_GRAY, @click_x, mouse_y, COLOR_GRAY, 12
@@ -762,6 +750,23 @@ module SimplePlot
                 Gosu::draw_line mouse_x, @click_y, COLOR_GRAY, mouse_x, mouse_y, COLOR_GRAY, 12
             else
                 draw_cursor_lines(mouse_x, mouse_y)
+            end
+
+            if @display_metadata
+                @metadata.draw
+                if @data_set_hash.empty?
+                    @no_data_message_1.draw
+                    @no_data_message_2.draw
+                end
+                @function_button.draw 
+                @open_file_button.draw
+                @help_button.draw 
+                @quit_button.draw 
+                if @overlay_widget
+                    @overlay_widget.draw 
+                end
+                @cursor_readout.draw_border
+                @small_font.draw_text("Cursor", @cursor_readout.x + 4, @cursor_readout.y, 1, 1, 1, COLOR_GRAY)
             end
         end
 
@@ -772,17 +777,19 @@ module SimplePlot
         def draw_cursor_lines(mouse_x, mouse_y)
             if is_cursor_on_graph(mouse_x, mouse_y) and @overlay_widget.nil?
                 x_val, y_val = @plot.draw_cursor_lines(mouse_x, mouse_y)
-                if @range.is_time_based
-                    x_str = Time.at(x_val).to_s
-                else
-                    x_str = "x: #{x_val.round(2).to_s}"
+                if @display_metadata
+                    if @range.is_time_based
+                        x_str = Time.at(x_val).to_s
+                    else
+                        x_str = "x: #{x_val.round(2).to_s}"
+                    end
+                    @small_font.draw_text(x_str,
+                                        x_pixel_to_screen(@margin_size + graph_width - 186),
+                                        y_pixel_to_screen(graph_height + 94), 1, 1, 1, COLOR_GRAY) 
+                    @small_font.draw_text("y: #{y_val.round(2).to_s}",
+                                        x_pixel_to_screen(@margin_size + graph_width - 186),
+                                        y_pixel_to_screen(graph_height + 124), 1, 1, 1, COLOR_GRAY) 
                 end
-                @small_font.draw_text(x_str,
-                                      x_pixel_to_screen(@margin_size + graph_width - 186),
-                                      y_pixel_to_screen(graph_height + 94), 1, 1, 1, COLOR_GRAY) 
-                @small_font.draw_text("y: #{y_val.round(2).to_s}",
-                                      x_pixel_to_screen(@margin_size + graph_width - 186),
-                                      y_pixel_to_screen(graph_height + 124), 1, 1, 1, COLOR_GRAY) 
             end
         end 
 
