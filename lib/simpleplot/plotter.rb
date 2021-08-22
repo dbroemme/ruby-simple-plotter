@@ -20,6 +20,7 @@ module SimplePlot
     MODE_HELP = "Help"
     MODE_DEFINE_FUNCTION = "Function"
     MODE_OPEN_FILE = "Open"
+    MODE_ZOOM_BOX = "Zoom"
 
     COLOR_PEACH = Gosu::Color.argb(0xffe6b0aa)
     COLOR_LIGHT_PURPLE = Gosu::Color.argb(0xffd7bde2)
@@ -734,7 +735,7 @@ module SimplePlot
             end
         end 
 
-        def render(width, height, update_count)
+        def render(mouse_x, mouse_y, update_count)
             @axis_lines.draw 
             @axis_labels.each do |label|
                 label.draw 
@@ -754,21 +755,35 @@ module SimplePlot
             end
             @cursor_readout.draw_border
             @small_font.draw_text("Cursor", @cursor_readout.x + 4, @cursor_readout.y, 1, 1, 1, COLOR_GRAY)
+            if @gui_mode == MODE_ZOOM_BOX
+                Gosu::draw_line @click_x, @click_y, COLOR_GRAY, mouse_x, @click_y, COLOR_GRAY, 12
+                Gosu::draw_line @click_x, @click_y, COLOR_GRAY, @click_x, mouse_y, COLOR_GRAY, 12
+                Gosu::draw_line @click_x, mouse_y, COLOR_GRAY, mouse_x, mouse_y, COLOR_GRAY, 12
+                Gosu::draw_line mouse_x, @click_y, COLOR_GRAY, mouse_x, mouse_y, COLOR_GRAY, 12
+            else
+                draw_cursor_lines(mouse_x, mouse_y)
+            end
         end
 
+        def is_cursor_on_graph(mouse_x, mouse_y)
+            mouse_x > x_pixel_to_screen(@margin_size) - 1 and mouse_x < x_pixel_to_screen(@margin_size) + graph_width and mouse_y > y_pixel_to_screen(0) and mouse_y < y_pixel_to_screen(0) + graph_height 
+        end 
+        
         def draw_cursor_lines(mouse_x, mouse_y)
-            x_val, y_val = @plot.draw_cursor_lines(mouse_x, mouse_y)
-            if @range.is_time_based
-                x_str = Time.at(x_val).to_s
-            else
-                x_str = "x: #{x_val.round(2).to_s}"
+            if is_cursor_on_graph(mouse_x, mouse_y) and @overlay_widget.nil?
+                x_val, y_val = @plot.draw_cursor_lines(mouse_x, mouse_y)
+                if @range.is_time_based
+                    x_str = Time.at(x_val).to_s
+                else
+                    x_str = "x: #{x_val.round(2).to_s}"
+                end
+                @small_font.draw_text(x_str,
+                                      x_pixel_to_screen(@margin_size + graph_width - 186),
+                                      y_pixel_to_screen(graph_height + 94), 1, 1, 1, COLOR_GRAY) 
+                @small_font.draw_text("y: #{y_val.round(2).to_s}",
+                                      x_pixel_to_screen(@margin_size + graph_width - 186),
+                                      y_pixel_to_screen(graph_height + 124), 1, 1, 1, COLOR_GRAY) 
             end
-            @small_font.draw_text(x_str,
-                                  x_pixel_to_screen(@margin_size + graph_width - 186),
-                                  y_pixel_to_screen(graph_height + 94), 1, 1, 1, COLOR_GRAY) 
-            @small_font.draw_text("y: #{y_val.round(2).to_s}",
-                                  x_pixel_to_screen(@margin_size + graph_width - 186),
-                                  y_pixel_to_screen(graph_height + 124), 1, 1, 1, COLOR_GRAY) 
         end 
 
         def display_help 
@@ -796,6 +811,19 @@ module SimplePlot
             @window.text_input = @overlay_widget.textinput
             @window.text_input.move_caret(1)
         end 
+
+        def button_up id, mouse_x, mouse_y
+            if @gui_mode == MODE_ZOOM_BOX
+                @gui_mode = MODE_PLOT
+                left_x = @plot.get_x_data_val(@click_x)
+                right_x = @plot.get_x_data_val(mouse_x)
+                bottom_y = @plot.get_y_data_val(mouse_y)
+                top_y = @plot.get_y_data_val(@click_y)
+                @range = Range.new(left_x, right_x, bottom_y, top_y, @range.is_time_based)
+                calculate_axis_labels
+                apply_visible_range
+            end
+        end
 
         def button_down id, mouse_x, mouse_y
             if @overlay_widget
@@ -828,7 +856,11 @@ module SimplePlot
                 elsif @help_button.contains_click(mouse_x, mouse_y)
                     display_help 
                 elsif @quit_button.contains_click(mouse_x, mouse_y)
-                    return WidgetResult.new(true) 
+                    return WidgetResult.new(true)
+                elsif @gui_mode == MODE_PLOT and is_cursor_on_graph(mouse_x, mouse_y)
+                    @click_x = mouse_x
+                    @click_y = mouse_y
+                    @gui_mode = MODE_ZOOM_BOX
                 end
             end
             if @window.text_input.nil?

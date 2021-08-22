@@ -692,19 +692,26 @@ module SimplePlot
             end
         end
 
+        def get_x_data_val(mouse_x)
+            graph_x = mouse_x - @x
+            x_pct = (@width - graph_x).to_f / @width.to_f
+            x_val = @visible_range.right_x - (x_pct * @visible_range.x_range)
+            x_val
+        end 
+
+        def get_y_data_val(mouse_y)
+            graph_y = mouse_y - @y
+            y_pct = graph_y.to_f / @height.to_f
+            y_val = @visible_range.top_y - (y_pct * @visible_range.y_range)
+            y_val
+        end
+
         def draw_cursor_lines(mouse_x, mouse_y)
             Gosu::draw_line mouse_x, y_pixel_to_screen(0), @cursor_line_color, mouse_x, y_pixel_to_screen(@height), @cursor_line_color
             Gosu::draw_line x_pixel_to_screen(0), mouse_y, @cursor_line_color, x_pixel_to_screen(@width), mouse_y, @cursor_line_color
             
-            graph_x = mouse_x - @x
-            graph_y = mouse_y - @y
-            x_pct = (@width - graph_x).to_f / @width.to_f
-            x_val = @visible_range.right_x - (x_pct * @visible_range.x_range)
-            y_pct = graph_y.to_f / @height.to_f
-            y_val = @visible_range.top_y - (y_pct * @visible_range.y_range)
-
             # Return the data values at this point, so the plotter can display them
-            [x_val, y_val]
+            [get_x_data_val(mouse_x), get_y_data_val(mouse_y)]
         end 
     end 
 end

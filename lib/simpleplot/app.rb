@@ -57,19 +57,19 @@ class SimplePlotterApp < Gosu::Window
     end 
     
     def draw 
+        draw_banner
+        @plotter.render(mouse_x, mouse_y, @update_count)
+    end 
+
+    def draw_banner 
         @banner_image.draw(1,1,1,0.9,0.9)
         @title_font.draw_text("Ruby Simple Plotter", 10, 20, 2, 1, 1, Gosu::Color::WHITE)
         @version_font.draw_text("Version #{SimplePlot::VERSION}", 13, 54, 2, 1, 1, Gosu::Color::WHITE)
-        @plotter.render(width, height, @update_count)
+    end
 
-        if is_cursor_on_graph and @plotter.overlay_widget.nil?
-            @plotter.draw_cursor_lines(mouse_x, mouse_y)
-        end 
-    end 
-
-    def is_cursor_on_graph
-        mouse_x > @widget_start_x + 199 and mouse_x < width and mouse_y > @widget_start_y and mouse_y < height - 200 
-    end 
+    def button_up id
+        @plotter.button_up id, mouse_x, mouse_y
+    end
 
     def button_down id
         if id == Gosu::KbEscape
