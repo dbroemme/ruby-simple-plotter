@@ -76,10 +76,20 @@ module SimplePlot
         attr_accessor :is_time_based
 
         def initialize(l, r, b, t, is_time_based = false)
-            @left_x = l 
-            @right_x = r 
-            @bottom_y = b 
-            @top_y = t 
+            if l < r
+                @left_x = l 
+                @right_x = r 
+            else 
+                @left_x = r 
+                @right_x = l 
+            end
+            if b < t
+                @bottom_y = b 
+                @top_y = t 
+            else 
+                @bottom_y = t  
+                @top_y = b 
+            end
             @x_range = @right_x - @left_x
             @y_range = @top_y - @bottom_y
             @is_time_based = is_time_based
@@ -455,7 +465,7 @@ module SimplePlot
         attr_accessor :axis_labels_color
         attr_accessor :data_point_size 
         attr_accessor :widgets
-        attr_accessor :range
+        attr_accessor :range_stack
         attr_accessor :gui_mode
         attr_accessor :overlay_widget
         attr_accessor :display_metadata
@@ -471,6 +481,7 @@ module SimplePlot
             @start_y = start_y
 
             @data_set_hash = {}
+            @range_stack = []
 
             @axis_labels_color = COLOR_CYAN
             @data_point_size = 4
@@ -541,6 +552,25 @@ module SimplePlot
             HEREDOC
         end
         
+        def current_range 
+            @range_stack.last
+        end 
+
+        def set_range_and_update_display(range = nil)
+            # Maintain a stack of ranges so we can support undo zoom
+            @range_stack.push(range) unless range.nil?
+            calculate_axis_labels
+            @plot.define_range(current_range)
+            update_plot_data_sets
+        end
+
+        def undo_zoom 
+            if @range_stack.size > 1
+                @range_stack.pop 
+                set_range_and_update_display
+            end 
+        end
+
         def clear_button 
             @function_button.is_pressed = false 
             @window.text_input = nil
@@ -612,17 +642,13 @@ module SimplePlot
                 data_set.calculate_range
                 @data_set_hash[key] = data_set
             end
-            set_range_as_superset
-            calculate_axis_labels
-            apply_visible_range
+            set_range_and_update_display(determine_superset_range)
         end 
 
         def add_data_set(name, data, color = COLOR_LIGHT_PURPLE) 
             @data_set_hash[name] = DataSet.new(name, data, color) 
             @data_set_hash[name].source_filename = "Predefined"
-            set_range_as_superset 
-            calculate_axis_labels
-            apply_visible_range
+            set_range_and_update_display(determine_superset_range)
         end
 
         def add_derived_data_set(function_str, color = nil) 
@@ -633,9 +659,7 @@ module SimplePlot
                 color = DEFAULT_COLORS[@data_set_hash.size]
             end
             @data_set_hash[name] = DerivedDataSet.new(name, rhs, @plot.visible_range, color) 
-            set_range_as_superset 
-            calculate_axis_labels
-            apply_visible_range
+            set_range_and_update_display(determine_superset_range)
         end
 
         def update_plot_data_sets 
@@ -672,32 +696,27 @@ module SimplePlot
             @start_y + y
         end
 
-        def set_range_as_superset 
+        def determine_superset_range
             wip_range = @data_set_hash.values.first.range 
             @data_set_hash.values.each do |ds|
                 wip_range = wip_range.plus(ds.range)
             end
-            @range = wip_range
+            wip_range
         end 
-
-        def apply_visible_range
-            @plot.define_range(@range) 
-            update_plot_data_sets 
-        end
 
         def calculate_axis_labels
             # TODO based on graph width and height, determine how many labels to show
             @x_axis_labels = []
-            if @range.is_time_based
+            if current_range.is_time_based
                 time_values = []
-                time_values << Time.at(@range.left_x)
-                time_values << Time.at(@range.left_x + (@range.x_range * 0.25))
-                time_values << Time.at(@range.left_x + (@range.x_range * 0.5))
-                time_values << Time.at(@range.left_x + (@range.x_range * 0.75))
-                time_values << Time.at(@range.right_x)
+                time_values << Time.at(current_range.left_x)
+                time_values << Time.at(current_range.left_x + (current_range.x_range * 0.25))
+                time_values << Time.at(current_range.left_x + (current_range.x_range * 0.5))
+                time_values << Time.at(current_range.left_x + (current_range.x_range * 0.75))
+                time_values << Time.at(current_range.right_x)
                 date_format_str = "%Y-%m-%d %H:%M:%S"
                 # 3600 min, 86400 day
-                if @range.x_range < 86400
+                if current_range.x_range < 86400
                     date_format_str = "%H:%M:%S"
                 else 
                     date_format_str = "%Y-%m-%d"
@@ -706,18 +725,18 @@ module SimplePlot
                     @x_axis_labels << t.strftime(date_format_str)
                 end
             else 
-                @x_axis_labels << @range.left_x.round(2)
-                @x_axis_labels << (@range.left_x + (@range.x_range * 0.25)).round(2)
-                @x_axis_labels << (@range.left_x + (@range.x_range * 0.5)).round(2)
-                @x_axis_labels << (@range.left_x + (@range.x_range * 0.75)).round(2)
-                @x_axis_labels << @range.right_x.round(2)
+                @x_axis_labels << current_range.left_x.round(2)
+                @x_axis_labels << (current_range.left_x + (current_range.x_range * 0.25)).round(2)
+                @x_axis_labels << (current_range.left_x + (current_range.x_range * 0.5)).round(2)
+                @x_axis_labels << (current_range.left_x + (current_range.x_range * 0.75)).round(2)
+                @x_axis_labels << current_range.right_x.round(2)
             end
             @y_axis_labels = []
-            @y_axis_labels << @range.top_y.round(2)
-            @y_axis_labels << (@range.top_y - (@range.y_range * 0.25)).round(2)
-            @y_axis_labels << (@range.top_y - (@range.y_range * 0.5)).round(2)
-            @y_axis_labels << (@range.top_y - (@range.y_range * 0.75)).round(2)
-            @y_axis_labels << @range.bottom_y.round(2)
+            @y_axis_labels << current_range.top_y.round(2)
+            @y_axis_labels << (current_range.top_y - (current_range.y_range * 0.25)).round(2)
+            @y_axis_labels << (current_range.top_y - (current_range.y_range * 0.5)).round(2)
+            @y_axis_labels << (current_range.top_y - (current_range.y_range * 0.75)).round(2)
+            @y_axis_labels << current_range.bottom_y.round(2)
 
             @axis_labels = []
             y = 0
@@ -778,7 +797,7 @@ module SimplePlot
             if is_cursor_on_graph(mouse_x, mouse_y) and @overlay_widget.nil?
                 x_val, y_val = @plot.draw_cursor_lines(mouse_x, mouse_y)
                 if @display_metadata
-                    if @range.is_time_based
+                    if current_range.is_time_based
                         x_str = Time.at(x_val).to_s
                     else
                         x_str = "x: #{x_val.round(2).to_s}"
@@ -820,15 +839,18 @@ module SimplePlot
         end 
 
         def button_up id, mouse_x, mouse_y
-            if @gui_mode == MODE_ZOOM_BOX
-                @gui_mode = MODE_PLOT
-                left_x = @plot.get_x_data_val(@click_x)
-                right_x = @plot.get_x_data_val(mouse_x)
-                bottom_y = @plot.get_y_data_val(mouse_y)
-                top_y = @plot.get_y_data_val(@click_y)
-                @range = Range.new(left_x, right_x, bottom_y, top_y, @range.is_time_based)
-                calculate_axis_labels
-                apply_visible_range
+            if id == Gosu::MsLeft
+                if @gui_mode == MODE_ZOOM_BOX
+                    @gui_mode = MODE_PLOT
+                    left_x = @plot.get_x_data_val(@click_x)
+                    right_x = @plot.get_x_data_val(mouse_x)
+                    bottom_y = @plot.get_y_data_val(mouse_y)
+                    top_y = @plot.get_y_data_val(@click_y)
+                    range = Range.new(left_x, right_x, bottom_y, top_y, current_range.is_time_based)
+                    set_range_and_update_display(range)
+                end
+            elsif id == Gosu::MsRight 
+                undo_zoom
             end
         end
 

@@ -38,9 +38,7 @@ class SimplePlotterApp < Gosu::Window
             end 
             spa.plotter.add_file_data(file_name, file_format)
         else
-            spa.plotter.range = SimplePlot::Range.new(0, 10, 0, 10)
-            spa.plotter.calculate_axis_labels
-            spa.plotter.apply_visible_range
+            spa.plotter.set_range_and_update_display(SimplePlot::Range.new(0, 10, 0, 10))
         end
 
         if opts[:define_function]
