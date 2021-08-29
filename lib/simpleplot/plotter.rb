@@ -1,19 +1,13 @@
 require 'gosu'
 require 'date'
-require_relative 'widgets'
-require_relative 'textinput'
+require 'ripper'
+require 'set'
+require_relative 'data_sets'
+require 'wads'
+
+include Wads 
 
 module SimplePlot
-    # Common constants that convert degrees to radians
-    DEG_0 = 0
-    DEG_45 = Math::PI * 0.25
-    DEG_90 = Math::PI * 0.5
-    DEG_135 = Math::PI * 0.75 
-    DEG_180 = Math::PI
-    DEG_225 = Math::PI * 1.25 
-    DEG_270 = Math::PI * 1.5
-    DEG_315 = Math::PI * 1.75
-    DEG_360 = Math::PI * 2
 
     # GUI Modes
     MODE_PLOT = "Plot"
@@ -21,34 +15,7 @@ module SimplePlot
     MODE_DEFINE_FUNCTION = "Function"
     MODE_OPEN_FILE = "Open"
     MODE_ZOOM_BOX = "Zoom"
-
-    COLOR_PEACH = Gosu::Color.argb(0xffe6b0aa)
-    COLOR_LIGHT_PURPLE = Gosu::Color.argb(0xffd7bde2)
-    COLOR_LIGHT_BLUE = Gosu::Color.argb(0xffa9cce3)
-    COLOR_LIGHT_GREEN = Gosu::Color.argb(0xffa3e4d7)
-    COLOR_LIGHT_YELLOW = Gosu::Color.argb(0xfff9e79f)
-    COLOR_LIGHT_ORANGE = Gosu::Color.argb(0xffedbb99)
-    COLOR_WHITE = Gosu::Color::WHITE
-    COLOR_OFF_WHITE = Gosu::Color.argb(0xfff8f9f9)
-    COLOR_PINK = Gosu::Color.argb(0xffe6b0aa)
-    COLOR_LIME = Gosu::Color.argb(0xffDAF7A6)
-    COLOR_YELLOW = Gosu::Color.argb(0xffFFC300)
-    COLOR_MAROON = Gosu::Color.argb(0xffC70039)
-    COLOR_LIGHT_GRAY = Gosu::Color.argb(0xff2c3e50)
-    COLOR_GRAY = Gosu::Color::GRAY
-    COLOR_OFF_GRAY = Gosu::Color.argb(0xff566573)
-    COLOR_LIGHT_BLACK = Gosu::Color.argb(0xff111111)
-    COLOR_LIGHT_RED = Gosu::Color.argb(0xffe6b0aa)
-    COLOR_CYAN = Gosu::Color::CYAN
-    COLOR_HEADER_BLUE = Gosu::Color.argb(0xff089FCE)
-    COLOR_HEADER_BRIGHT_BLUE = Gosu::Color.argb(0xff0FAADD)
-    COLOR_BLUE = Gosu::Color::BLUE
-    COLOR_DARK_GRAY = Gosu::Color.argb(0xccf0f3f4)
-    COLOR_RED = Gosu::Color::RED
-    COLOR_BLACK = Gosu::Color::BLACK
-    COLOR_FORM_BUTTON = Gosu::Color.argb(0xcc2e4053)
-    COLOR_ERROR_CODE_RED = Gosu::Color.argb(0xffe6b0aa)
-
+    MODE_DERIVED_FUNCTION_GRAPH = "Graph"
     DEFAULT_COLORS = [
         COLOR_PEACH,
         COLOR_LIGHT_PURPLE,
@@ -65,110 +32,12 @@ module SimplePlot
         COLOR_LIGHT_RED
     ]
 
-    def scale(val, max_value, scaled_max) 
-        pct = val.to_f / max_value.to_f 
-        scaled_max.to_f * pct
-    end 
-
-    class Range
-        attr_accessor :left_x
-        attr_accessor :right_x
-        attr_accessor :bottom_y
-        attr_accessor :top_y
-        attr_accessor :x_range
-        attr_accessor :y_range
-        attr_accessor :is_time_based
-
-        def initialize(l, r, b, t, is_time_based = false)
-            if l < r
-                @left_x = l 
-                @right_x = r 
-            else 
-                @left_x = r 
-                @right_x = l 
-            end
-            if b < t
-                @bottom_y = b 
-                @top_y = t 
-            else 
-                @bottom_y = t  
-                @top_y = b 
-            end
-            @x_range = @right_x - @left_x
-            @y_range = @top_y - @bottom_y
-            @is_time_based = is_time_based
-
-            @orig_left_x = @left_x
-            @orig_right_x = @right_x
-            @orig_bottom_y = @bottom_y
-            @orig_top_y = @top_y
-            @orig_range_x = @x_range
-            @orig_range_y = @y_range
-        end
-
-        def plus(other_range)
-            l = @left_x < other_range.left_x ? @left_x : other_range.left_x
-            r = @right_x > other_range.right_x ? @right_x : other_range.right_x
-            b = @bottom_y < other_range.bottom_y ? @bottom_y : other_range.bottom_y
-            t = @top_y > other_range.top_y ? @top_y : other_range.top_y
-            Range.new(l, r, b, t, (@is_time_based or other_range.is_time_based))
-        end
-
-        def x_ten_percent 
-            @x_range.to_f / 10
-        end 
-
-        def y_ten_percent 
-            @y_range.to_f / 10
-        end 
-
-        def scale(zoom_level)
-            x_mid_point = @orig_left_x + (@orig_range_x.to_f / 2)
-            x_extension = (@orig_range_x.to_f * zoom_level) / 2
-            @left_x = x_mid_point - x_extension
-            @right_x = x_mid_point + x_extension
-
-            y_mid_point = @orig_bottom_y + (@orig_range_y.to_f / 2)
-            y_extension = (@orig_range_y.to_f * zoom_level) / 2
-            @bottom_y = y_mid_point - y_extension
-            @top_y = y_mid_point + y_extension
-
-            @x_range = @right_x - @left_x
-            @y_range = @top_y - @bottom_y
-        end 
-
-        def scroll_up 
-            @bottom_y = @bottom_y + x_ten_percent
-            @top_y = @top_y + x_ten_percent
-            @y_range = @top_y - @bottom_y
-        end
-
-        def scroll_down
-            @bottom_y = @bottom_y - x_ten_percent
-            @top_y = @top_y - x_ten_percent
-            @y_range = @top_y - @bottom_y
-        end
-
-        def scroll_right
-            @left_x = @left_x + x_ten_percent
-            @right_x = @right_x + x_ten_percent
-            @x_range = @right_x - @left_x
-        end
-
-        def scroll_left
-            @left_x = @left_x - x_ten_percent
-            @right_x = @right_x - x_ten_percent
-            @x_range = @right_x - @left_x
-        end
-    end
-
     class DataSet 
         attr_accessor :name
         attr_accessor :color 
         attr_accessor :data_points 
         attr_accessor :is_time_based 
         attr_accessor :range 
-        attr_accessor :rendered_points 
         attr_accessor :data_point_size
         attr_accessor :source_filename
         attr_accessor :visible
@@ -180,7 +49,6 @@ module SimplePlot
             @is_time_based = is_time_based
             @data_point_size = data_point_size
             @visible = true
-            clear_rendered_points
             if data_points
                 calculate_range
             end
@@ -200,11 +68,6 @@ module SimplePlot
             @source_filename
         end 
 
-        def derive_values(visible_range, data_hash)
-            # Base implementation is empty
-            # Explicit data sets do not need to derive data
-        end 
-
         def add_data_point(point)
             if @data_points.nil? 
                 @data_points = []
@@ -212,12 +75,17 @@ module SimplePlot
             @data_points << point
         end
 
-        def clear_rendered_points 
-            @rendered_points = [] 
-        end
-
-        def add_rendered_point(point)
-            @rendered_points << point 
+        def get_value_at_x(x, accuracy = 0.01)
+            if @data_points.nil?
+                return nil 
+            end 
+            @data_points.each do |dp|
+                if dp.x == x 
+                    # TODO accuracy
+                    return dp.y 
+                end 
+            end
+            nil
         end
 
         def update_data(data)
@@ -305,7 +173,7 @@ module SimplePlot
             bottom_y = bottom_y - extension
             top_y = top_y + extension
 
-            @range = Range.new(left_x, right_x, bottom_y, top_y, @is_time_based)
+            @range = VisibleRange.new(left_x, right_x, bottom_y, top_y, @is_time_based)
         end
 
         def increase_size 
@@ -321,27 +189,47 @@ module SimplePlot
 
     class DerivedDataSet < DataSet 
         attr_accessor :function_str 
+        attr_accessor :referenced_data_sets 
 
         def initialize(name, rhs, range, color)
-            super(name, nil, color)
+            super(name.strip, nil, color)
             @data_points = []
             @function_str = rhs 
             @range = range
+            @referenced_data_sets = determine_referenced_data_sets
         end 
+
+        def determine_referenced_data_sets
+            begin 
+                result = Ripper.sexp(@function_str)   # this returns an array
+                #pp result
+                idents = find_all_idents(result)
+                return idents.to_a
+            rescue => e
+                puts "Got an exception: #{e}"
+            end
+            Set.new
+        end
+
+        def find_all_idents(parse_tree, ident_set = Set.new)
+            if parse_tree.kind_of?(Array)
+                if parse_tree.length > 1 and parse_tree[0] == :@ident
+                    ident_set.add(parse_tree[1])
+                end 
+                if parse_tree.length > 1 and parse_tree[0] == :call
+                    # Skipp the call subtree so we don't confuse method name idents
+                    # with data set names
+                else
+                    parse_tree.each do |pt|
+                        find_all_idents(pt, ident_set)
+                    end
+                end
+            end
+            ident_set
+        end
 
         def source_display 
             @function_str
-        end 
-
-        def derive_values(visible_range, data_hash)
-            @data_points = []
-            x = visible_range.left_x
-            while x < visible_range.right_x 
-                y = eval(@function_str)
-                #puts "#{y} = [#{x}] #{@function_str}"
-                @data_points << DataPoint.new(x, y)
-                x = x + 0.1    # TODO this should be based on range size
-            end
         end 
     end 
 
@@ -378,6 +266,24 @@ module SimplePlot
         def handle_ok
             x = 1
             code = ""
+            # Verify it is an equation
+            if not @textinput.text.include? "="
+                add_error_message("The function must include an assignment (=) with a left and right side")
+                return WidgetResult.new(false)
+            end 
+
+            # Verify we are not redefining an existing data set
+            parts = @textinput.text.partition("=")
+            lhs = parts[0].strip
+            if @data_set_names.include? lhs 
+                add_error_message("The data set #{lhs} is already defined.")
+                return WidgetResult.new(false)
+            end 
+            if lhs == "x"
+                add_error_message("You cannot redefine the x-axis variable.")
+                return WidgetResult.new(false)
+            end 
+
             # Add other data sets in the context for evaluation
             @data_set_names.each do |dsn| 
                 code = "#{code}\n#{dsn} = 1"
@@ -390,7 +296,19 @@ module SimplePlot
                 add_error_message(parts[0][0..-8])
                 return WidgetResult.new(false)
             end
-            return WidgetResult.new(true, "ok", @textinput.text) 
+            return WidgetResult.new(true, EVENT_OK, @textinput.text) 
+        end
+
+        def render 
+            super 
+            draw_background(Z_ORDER_BACKGROUND) 
+        end
+
+        def handle_key_press id, mouse_x, mouse_y
+            if id == Gosu::KbReturn
+                #return WidgetResult.new(true, EVENT_OK, @textinput.text)
+                return handle_ok
+            end
         end
     end
 
@@ -398,18 +316,16 @@ module SimplePlot
         attr_accessor :selected_filename
 
         def initialize(window, font, x, y, width, height) 
-            super(window, font, x, y, width, height, "Select a file from the data subdirectory", "n,x,y") 
+            super(window, font, x, y, width, height,
+                  "Select a file from the data subdirectory", "n,x,y") 
 
-            @file_table = SingleSelectTable.new(x + 370, y + 60, 400, 150, ["Filename"], @font, COLOR_CYAN, 4)
+            @file_table = add_single_select_table(370, 60, 400, 150, ["Filename"], COLOR_CYAN, 4)
             files = Dir["./data/*"]
             files.each do |f|
                 @file_table.add_row([f.to_s], COLOR_WHITE) 
             end
-            add_child(@file_table) 
 
-            @preview = Table.new(x + 5, y + 216, @width - 15, 90,
-                                ["Data Preview"], @font, COLOR_CYAN, 3)
-            add_child(@preview)
+            @preview = add_table(5, 216, width - 15, 90, ["Data Preview"], COLOR_CYAN, 3)
         end
 
         def content 
@@ -423,16 +339,16 @@ module SimplePlot
         end
 
         def handle_ok
-            return WidgetResult.new(true, "ok", [@selected_filename, @textinput.text]) 
+            return WidgetResult.new(true, EVENT_OK, [@selected_filename, @textinput.text]) 
         end 
 
-        def handle_up(mouse_x, mouse_y)
-            @file_table.scroll_up
-        end
-
-        def handle_down(mouse_x, mouse_y)
-            @file_table.scroll_down
-        end
+        def handle_key_press id, mouse_x, mouse_y
+            if id == Gosu::KbUp
+                @file_table.scroll_up
+            elsif id == Gosu::KbDown
+                @file_table.scroll_down
+            end
+        end 
 
         def handle_mouse_click(mouse_x, mouse_y)
             if @file_table.contains_click(mouse_x, mouse_y)
@@ -455,12 +371,15 @@ module SimplePlot
             end
         end
 
-        def text_input_updated(text)
-            @preview.headers = @textinput.text.split(",")
+        def intercept_widget_event(result)
+            if result.action == EVENT_TEXT_INPUT
+                @preview.headers = result.form_data[0].split(",")
+            end
         end
 
         def render 
             super
+            draw_background(Z_ORDER_BACKGROUND)
             @preview.draw_border
             if @preview_content
                 y = @preview.y + 40
@@ -472,76 +391,101 @@ module SimplePlot
         end
     end
 
-    class SimplePlot
-        attr_accessor :widget_width
-        attr_accessor :widget_height
+    class DerivedFunctionGraphDisplay < InfoBox
+        def initialize(x, y, font, width, height, graph)
+            super("Derived Function Dependencies", "This graph below shows dependencies between data sets",
+                  x, y, font, width, height)
+            @base_z = 10
+            set_background(COLOR_BLACK)
+            @graph = graph
+            @graph_display = add_graph_display(5, 160, 770, 200, @graph)
+            @graph_display.set_tree_display
+            root_nodes = @graph.root_nodes 
+            if root_nodes.empty? or root_nodes.size == 1
+                @graph_display.set_center_node(@graph.find_node("x"), 5)
+            else 
+                @graph_display.set_center_node(root_nodes[1], 5)
+            end
+        end 
+
+        def render 
+            super 
+            draw_background(Z_ORDER_BACKGROUND)
+        end
+    end 
+
+    class SimplePlot < Widget
         attr_accessor :axis_labels_color
         attr_accessor :data_point_size 
         attr_accessor :widgets
         attr_accessor :range_stack
         attr_accessor :gui_mode
-        attr_accessor :overlay_widget
         attr_accessor :display_metadata
+        attr_accessor :derived_function_graph
 
-        def initialize(window, width, height, start_x = 0, start_y = 0)
+        def initialize(window, x, y, width, height, font)
+            super(x, y, COLOR_HEADER_BRIGHT_BLUE)
+            set_dimensions(width, height)
+            set_font(font)
             @window = window
             @gui_mode = MODE_PLOT
             @display_metadata = true
-            ########################################
-            # top left origin of widget on screen  #
-            ########################################
-            @start_x = start_x
-            @start_y = start_y
 
             @data_set_hash = {}
+            @derived_function_graph = Graph.new
+            @derived_function_graph.add_node(create_graph_node("x"))  # The only implied data set
             @range_stack = []
 
             @axis_labels_color = COLOR_HEADER_BRIGHT_BLUE
             @data_point_size = 4
-            @font = Gosu::Font.new(32)
-            @small_font = Gosu::Font.new(24)
             @display_grid = true
             @display_lines = false
             @margin_size = 200
-            @window_width = width 
-            @window_height = height
 
-            @plot = Plot.new(x_pixel_to_screen(@margin_size), y_pixel_to_screen(0),
-                             graph_width, graph_height, @font) 
-            @axis_lines = AxisLines.new(x_pixel_to_screen(@margin_size), y_pixel_to_screen(0),
-                                        graph_width, graph_height + 1, @axis_labels_color)
+            @plot = add_plot(@margin_size, 0, graph_width, graph_height)
+            add_axis_lines(@margin_size, 0, graph_width, graph_height + 1, @axis_labels_color)
             @axis_labels = []
-            @metadata = MultiSelectTable.new(
-                                  x_pixel_to_screen(@margin_size), y_pixel_to_screen(graph_height + 64),
+            @metadata = add_multi_select_table(@margin_size, graph_height + 64,
                                   graph_width - 200, 120,
                                   ["#", "Name", "Source"],
-                                  @small_font, COLOR_GRAY, 3)
+                                  COLOR_GRAY, 3)
+            @metadata.can_delete_rows = true
             @no_data_message_1 = Text.new('Click "Define Function"',
                                         x_pixel_to_screen(@margin_size + 32), y_pixel_to_screen(graph_height + 84),
-                                        @small_font, COLOR_CYAN) 
+                                        @font, COLOR_HEADER_BRIGHT_BLUE) 
             @no_data_message_2 = Text.new('or "Open Data File" to plot data',
                                         x_pixel_to_screen(@margin_size + 32), y_pixel_to_screen(graph_height + 108),
-                                        @small_font, COLOR_CYAN) 
-            @function_button = Button.new("Define Function",
-                                          x_pixel_to_screen(10),
-                                          y_pixel_to_screen(graph_height + 64),
-                                          @small_font,
-                                          180)
-            @open_file_button = Button.new("Open Data File",
-                                          x_pixel_to_screen(10),
-                                          y_pixel_to_screen(graph_height + 94),
-                                          @small_font,
-                                          180)
-            @help_button = Button.new("Help",
-                                       x_pixel_to_screen(10),
-                                       y_pixel_to_screen(graph_height + 124),
-                                       @small_font,
-                                       180)
-            @quit_button = Button.new("Quit",
-                                       x_pixel_to_screen(10),
-                                       y_pixel_to_screen(graph_height + 154),
-                                       @small_font,
-                                       180)
+                                        @font, COLOR_HEADER_BRIGHT_BLUE) 
+            add_button("Define Function", 10, graph_height + 64, 180) do
+                @gui_mode = MODE_DEFINE_FUNCTION
+                add_overlay(DefineFunctionForm.new(@window, @font,
+                                                   x_pixel_to_screen(10), y_pixel_to_screen(10),
+                                                   @width - 20, graph_height,
+                                                   @data_set_hash.keys))
+                @window.text_input = @overlay_widget.textinput
+                @window.text_input.move_caret(1)
+            end
+
+            add_button("Open Data File", 10, graph_height + 94, 180) do 
+                @gui_mode = MODE_OPEN_FILE
+                add_overlay(OpenDataFileForm.new(@window, @font,
+                                                 x_pixel_to_screen(10), y_pixel_to_screen(10),
+                                                 @width - 20, graph_height))
+                @window.text_input = @overlay_widget.textinput
+                @window.text_input.move_caret(1)
+            end
+
+            add_button("Help", 10, graph_height + 124, 180) do 
+                @gui_mode = MODE_HELP
+                add_overlay(InfoBox.new("Simple Plot Help", help_content,
+                                        x_pixel_to_screen(10), y_pixel_to_screen(10), @font,
+                                        @width - 20, graph_height))
+            end
+
+            add_button("Quit", 10, graph_height + 154, 180) do
+                WidgetResult.new(true)
+            end
+
             @cursor_readout = Widget.new(x_pixel_to_screen(@margin_size + graph_width - 190),
                                          y_pixel_to_screen(graph_height + 64),
                                          COLOR_GRAY)
@@ -557,7 +501,6 @@ module SimplePlot
               Key Commands:
                 arrow keys      scroll up, down, left, right
                 <, >            zoom in or out
-                d               define a custom function to plot
                 a               decrease data point size
                 s               increase data point size
                 g               toggle grid lines
@@ -586,7 +529,6 @@ module SimplePlot
         end
 
         def clear_button 
-            @function_button.is_pressed = false 
             @window.text_input = nil
         end 
 
@@ -655,6 +597,7 @@ module SimplePlot
                 data_set = new_data_sets[key]
                 data_set.calculate_range
                 @data_set_hash[key] = data_set
+                @derived_function_graph.add_node(create_graph_node(key))
             end
             set_range_and_update_display(determine_superset_range)
         end 
@@ -667,47 +610,118 @@ module SimplePlot
 
         def add_derived_data_set(function_str, color = nil) 
             parts = function_str.partition("=")
-            name = parts[0]
-            rhs = parts[2]
+            name = parts[0].strip
+            rhs = parts[2].strip
             if color == nil 
                 color = DEFAULT_COLORS[@data_set_hash.size]
             end
             @data_set_hash[name] = DerivedDataSet.new(name, rhs, @plot.visible_range, color) 
+            # Update the derived function graph
+            # The dependent data sets should already exist
+            # Here we are adding the new data set name (lhs) and edges to the referenced data sets
+            lhs_node = create_graph_node(name)
+            @derived_function_graph.add_node(lhs_node)
+            @data_set_hash[name].referenced_data_sets.each do |ref_data_set_name|
+                #puts "Adding an edge from #{name} to #{ref_data_set_name}"
+                referenced_node = @derived_function_graph.find_node(ref_data_set_name)
+                if referenced_node.nil?
+                    puts "ERROR: Cannot find referenced data set #{ref_data_set_name} in dependency graph"
+                else 
+                    lhs_node.add_output_node(referenced_node)
+                end 
+            end
             set_range_and_update_display(determine_superset_range)
+        end
+
+        def create_graph_node(name)
+            tags = {}
+            tags["color"] = COLOR_WHITE
+            Node.new(name, "", tags)
         end
 
         def update_plot_data_sets 
             @metadata.clear_rows
             i = 1
+
+            # Do all the regular data sets first
+            regular_data_sets = []
+            derived_data_sets = []
             @data_set_hash.values.each do |data_set|
-                @plot.add_data_set(data_set)
-                @metadata.add_row([i.to_s, data_set.name, data_set.source_display], data_set.color)
+                if data_set.is_a? DerivedDataSet 
+                    derived_data_sets << data_set 
+                else 
+                    regular_data_sets << data_set
+                end 
+            end
+
+            hh = HashOfHashes.new
+
+            regular_data_sets.each do |data_set|
+                data_set.data_points.each do |dp|
+                    hh.set(data_set.name, dp.x, dp.y)
+                end
+                # TODO This will end up changing the order of data sets in the table
+                # because we are using a different order here than what the user entered
+                add_data_set_to_plot(data_set.data_points, data_set, i)
                 i = i + 1
+            end
+
+            order_of_calculation = GraphReverseIterator.new(@derived_function_graph).output
+
+            order_of_calculation.each do |node|
+                if node.id == "x"
+                    # skip, x is implied
+                elsif regular_data_sets.select {|ds| ds.name == node.id }.size == 1
+                    # regular datasets do not need to be derived
+                else
+                    data_set = @data_set_hash[node.id]
+                    if data_set.nil?
+                        puts "ERROR did not find data set #{node.id}"
+                        exit 
+                    end
+                    #puts "Calculating derived data set #{data_set.name}"
+                    calc = DerivedFunctionCalculator.new(data_set)
+                    the_data_points = calc.derive_values(data_set.name,
+                                                        data_set.determine_referenced_data_sets,
+                                                        @plot.visible_range,
+                                                        hh)
+                    add_data_set_to_plot(the_data_points, data_set, i)
+                    i = i + 1
+                end
             end
         end
 
-        def widget_width 
-            @window_width
-        end 
-
-        def widget_height
-            @window_height
-        end 
+        def add_data_set_to_plot(the_data_points, data_set, i)
+            rendered_points = []
+            the_data_points.each do |point|
+                pp = PlotPoint.new(@plot.draw_x(point.x),
+                                    @plot.draw_y(point.y),
+                                    point.x,
+                                    point.y,
+                                    data_set.color,
+                                    data_set.data_point_size)
+                if @plot.is_on_screen(pp)
+                    rendered_points << pp
+                end
+            end
+            @plot.add_data_set(data_set.name, rendered_points)
+            @metadata.add_row([i.to_s, data_set.name, data_set.source_display], data_set.color)
+        end
 
         def graph_width 
-            widget_width - @margin_size
+            @width - @margin_size
         end 
         
         def graph_height 
-            widget_height - @margin_size
+            @height - @margin_size
         end
 
         def x_pixel_to_screen(x)
-            @start_x + x
+            @x + x
         end
 
         def y_pixel_to_screen(y)
-            @start_y + y
+            @y + y
         end
 
         def determine_superset_range
@@ -719,8 +733,8 @@ module SimplePlot
         end 
 
         def calculate_axis_labels
-            # TODO based on graph width and height, determine how many labels to show
             @x_axis_labels = []
+            current_range.clear_cache
             if current_range.is_time_based
                 time_values = []
                 time_values << Time.at(current_range.left_x)
@@ -757,7 +771,7 @@ module SimplePlot
             @y_axis_labels.each do |label|
                 @axis_labels << VerticalAxisLabel.new(x_pixel_to_screen(@margin_size),
                                                       y_pixel_to_screen(y),
-                                                      label, @small_font, @axis_labels_color) 
+                                                      label, @font, @axis_labels_color) 
                 y = y + 100
             end
 
@@ -765,162 +779,83 @@ module SimplePlot
             @x_axis_labels.each do |label|
                 @axis_labels <<  HorizontalAxisLabel.new(x_pixel_to_screen(x),
                                                          y_pixel_to_screen(graph_height),
-                                                         label, @small_font, @axis_labels_color)
+                                                         label, @font, @axis_labels_color)
                 x = x + 150
             end
         end 
 
-        def render(mouse_x, mouse_y, update_count)
-            @axis_lines.draw 
+        def render
             @axis_labels.each do |label|
                 label.draw 
             end
-            @plot.draw
-            if @gui_mode == MODE_ZOOM_BOX
-                Gosu::draw_line @click_x, @click_y, COLOR_GRAY, mouse_x, @click_y, COLOR_GRAY, 12
-                Gosu::draw_line @click_x, @click_y, COLOR_GRAY, @click_x, mouse_y, COLOR_GRAY, 12
-                Gosu::draw_line @click_x, mouse_y, COLOR_GRAY, mouse_x, mouse_y, COLOR_GRAY, 12
-                Gosu::draw_line mouse_x, @click_y, COLOR_GRAY, mouse_x, mouse_y, COLOR_GRAY, 12
-            else
-                draw_cursor_lines(mouse_x, mouse_y)
-            end
+            draw_cursor_lines
+            draw_zoom_box
 
             if @display_metadata
-                @metadata.draw
                 if @data_set_hash.empty?
                     @no_data_message_1.draw
                     @no_data_message_2.draw
                 end
-                @function_button.draw 
-                @open_file_button.draw
-                @help_button.draw 
-                @quit_button.draw 
-                if @overlay_widget
-                    @overlay_widget.draw 
-                end
                 @cursor_readout.draw_border
-                @small_font.draw_text("Cursor", @cursor_readout.x + 4, @cursor_readout.y, 1, 1, 1, COLOR_GRAY)
+                @font.draw_text("Cursor", @cursor_readout.x + 4, @cursor_readout.y, 1, 1, 1, COLOR_GRAY)
             end
         end
 
         def is_cursor_on_graph(mouse_x, mouse_y)
             mouse_x > x_pixel_to_screen(@margin_size) - 1 and mouse_x < x_pixel_to_screen(@margin_size) + graph_width and mouse_y > y_pixel_to_screen(0) and mouse_y < y_pixel_to_screen(0) + graph_height 
         end 
+
+        def draw_zoom_box 
+            if @gui_mode == MODE_ZOOM_BOX
+                Gosu::draw_line @click_x, @click_y, COLOR_GRAY, @last_mouse_x, @click_y, COLOR_GRAY, 12
+                Gosu::draw_line @click_x, @click_y, COLOR_GRAY, @click_x, @last_mouse_y, COLOR_GRAY, 12
+                Gosu::draw_line @click_x, @last_mouse_y, COLOR_GRAY, @last_mouse_x, @last_mouse_y, COLOR_GRAY, 12
+                Gosu::draw_line @last_mouse_x, @click_y, COLOR_GRAY, @last_mouse_x, @last_mouse_y, COLOR_GRAY, 12
+            end
+        end
         
-        def draw_cursor_lines(mouse_x, mouse_y)
-            if is_cursor_on_graph(mouse_x, mouse_y) and @overlay_widget.nil?
-                x_val, y_val = @plot.draw_cursor_lines(mouse_x, mouse_y)
+        def draw_cursor_lines
+            if @last_mouse_x and @last_mouse_y
+                if @gui_mode == MODE_PLOT
+                    x_val, y_val = @plot.draw_cursor_lines(@last_mouse_x, @last_mouse_y)
+                else 
+                    x_val = @plot.get_x_data_val(@last_mouse_x)
+                    y_val = @plot.get_y_data_val(@last_mouse_y)
+                end
                 if @display_metadata
                     if current_range.is_time_based
                         x_str = Time.at(x_val).to_s
                     else
                         x_str = "x: #{x_val.round(2).to_s}"
                     end
-                    @small_font.draw_text(x_str,
-                                        x_pixel_to_screen(@margin_size + graph_width - 186),
-                                        y_pixel_to_screen(graph_height + 94), 1, 1, 1, COLOR_GRAY) 
-                    @small_font.draw_text("y: #{y_val.round(2).to_s}",
-                                        x_pixel_to_screen(@margin_size + graph_width - 186),
-                                        y_pixel_to_screen(graph_height + 124), 1, 1, 1, COLOR_GRAY) 
+                    @font.draw_text(x_str,
+                                    x_pixel_to_screen(@margin_size + graph_width - 186),
+                                    y_pixel_to_screen(graph_height + 94), 1, 1, 1, COLOR_GRAY) 
+                    @font.draw_text("y: #{y_val.round(2).to_s}",
+                                     x_pixel_to_screen(@margin_size + graph_width - 186),
+                                    y_pixel_to_screen(graph_height + 124), 1, 1, 1, COLOR_GRAY) 
                 end
             end
         end 
 
-        def display_help 
-            @gui_mode = MODE_HELP
-            @overlay_widget = InfoBox.new("Simple Plot Help", help_content,
-                                          x_pixel_to_screen(10), y_pixel_to_screen(10), @small_font,
-                                          @window_width - 20, graph_height)
-        end
-
-        def display_define_function_form 
-            @gui_mode = MODE_DEFINE_FUNCTION
-            @overlay_widget = DefineFunctionForm.new(@window, @small_font,
-                                                     x_pixel_to_screen(10), y_pixel_to_screen(10),
-                                                     @window_width - 20, graph_height,
-                                                     @data_set_hash.keys)
-            @window.text_input = @overlay_widget.textinput
-            @window.text_input.move_caret(1)
-        end 
-
-        def display_open_file_form 
-            @gui_mode = MODE_OPEN_FILE
-            @overlay_widget = OpenDataFileForm.new(@window, @small_font,
-                                                   x_pixel_to_screen(10), y_pixel_to_screen(10),
-                                                   @window_width - 20, graph_height)
-            @window.text_input = @overlay_widget.textinput
-            @window.text_input.move_caret(1)
-        end 
-
-        def button_up id, mouse_x, mouse_y
-            if id == Gosu::MsLeft
-                if @gui_mode == MODE_ZOOM_BOX
-                    @gui_mode = MODE_PLOT
-                    left_x = @plot.get_x_data_val(@click_x)
-                    right_x = @plot.get_x_data_val(mouse_x)
-                    bottom_y = @plot.get_y_data_val(mouse_y)
-                    top_y = @plot.get_y_data_val(@click_y)
-                    range = Range.new(left_x, right_x, bottom_y, top_y, current_range.is_time_based)
-                    set_range_and_update_display(range)
-                end
-            elsif id == Gosu::MsRight 
-                undo_zoom
+        def handle_update update_count, mouse_x, mouse_y
+            if is_cursor_on_graph(mouse_x, mouse_y) and @overlay_widget.nil?
+                @last_mouse_x = mouse_x
+                @last_mouse_y = mouse_y 
+            else
+                @last_mouse_x = nil
+                @last_mouse_y = nil
             end
         end
 
-        def button_down id, mouse_x, mouse_y
-            if @overlay_widget
-                result = @overlay_widget.button_down id, mouse_x, mouse_y
-                if @gui_mode == MODE_DEFINE_FUNCTION
-                    if result.action == "ok"
-                        clear_button 
-                        add_derived_data_set(result.form_data) 
-                    end 
-                elsif @gui_mode == MODE_OPEN_FILE 
-                    if result.action == "ok"
-                        clear_button 
-                        filename_and_format_array = result.form_data
-                        add_file_data(filename_and_format_array[0],
-                                      filename_and_format_array[1])
-                    end
-                end
-                if result.close_widget
-                    @overlay_widget = nil 
-                    @gui_mode = MODE_PLOT
-                end
-                return 
-            end
-
-            if id == Gosu::MsLeft
-                if @function_button.contains_click(mouse_x, mouse_y)
-                    display_define_function_form
-                elsif @open_file_button.contains_click(mouse_x, mouse_y)
-                    display_open_file_form 
-                elsif @help_button.contains_click(mouse_x, mouse_y)
-                    display_help 
-                elsif @quit_button.contains_click(mouse_x, mouse_y)
-                    return WidgetResult.new(true)
-                elsif @metadata.contains_click(mouse_x, mouse_y)
-                    if @metadata.is_row_selected(mouse_y)
-                        data_set_name = @metadata.unset_selected_row(mouse_y, 1)
-                        @data_set_hash[data_set_name].toggle_visibility
-                    else 
-                        data_set_name = @metadata.set_selected_row(mouse_y, 1)
-                        @data_set_hash[data_set_name].toggle_visibility
-                    end
-                elsif @gui_mode == MODE_PLOT and is_cursor_on_graph(mouse_x, mouse_y)
-                    @click_x = mouse_x
-                    @click_y = mouse_y
-                    @gui_mode = MODE_ZOOM_BOX
-                end
-            end
+        def handle_key_press id, mouse_x, mouse_y
             if @window.text_input.nil?
-                if id == Gosu::KbH 
-                    display_help
-                elsif id == Gosu::KbO 
-                    display_open_file_form
-                elsif id == Gosu::KbD
-                    display_define_function_form
+                if id == Gosu::KbF
+                    @gui_mode = MODE_DERIVED_FUNCTION_GRAPH
+                    add_overlay(DerivedFunctionGraphDisplay.new(x_pixel_to_screen(10), y_pixel_to_screen(10),
+                                                               @font,
+                                                               @width - 20, graph_height,
+                                                               @derived_function_graph))
                 elsif id == Gosu::KbG 
                     @plot.display_grid = !@plot.display_grid
                 elsif id == Gosu::KbL
@@ -973,7 +908,63 @@ module SimplePlot
                     update_plot_data_sets  
                 end
             end
-            nil
+        end
+
+        def handle_mouse_up mouse_x, mouse_y
+            if @gui_mode == MODE_ZOOM_BOX
+                @gui_mode = MODE_PLOT
+                left_x = @plot.get_x_data_val(@click_x)
+                right_x = @plot.get_x_data_val(mouse_x)
+                bottom_y = @plot.get_y_data_val(mouse_y)
+                top_y = @plot.get_y_data_val(@click_y)
+                range = VisibleRange.new(left_x, right_x, bottom_y, top_y, current_range.is_time_based)
+                set_range_and_update_display(range)
+            end
+        end
+
+        def handle_right_mouse mouse_x, mouse_y
+            if is_cursor_on_graph(mouse_x, mouse_y)
+                undo_zoom
+            end
+        end
+
+        def intercept_widget_event(result)
+            #puts "Plotter intercept event #{result.inspect}"
+            if @gui_mode == MODE_OPEN_FILE 
+                if result.action == EVENT_OK
+                    @gui_mode = MODE_PLOT
+                    filename_and_format_array = result.form_data
+                    if filename_and_format_array[0]
+                        add_file_data(filename_and_format_array[0],
+                                      filename_and_format_array[1])
+                    end
+                end
+            elsif @gui_mode == MODE_DEFINE_FUNCTION
+                if result.action == EVENT_OK
+                    @gui_mode = MODE_PLOT
+                    add_derived_data_set(result.form_data) 
+                    clear_button
+                end 
+            elsif not result.action.nil? and (result.action == EVENT_TABLE_SELECT or result.action == EVENT_TABLE_UNSELECT)
+                data_set_name = result.form_data[1]
+                @data_set_hash[data_set_name].toggle_visibility
+                @plot.toggle_visibility(data_set_name)
+            elsif not result.action.nil? and result.action == EVENT_TABLE_ROW_DELETE
+                data_set_to_remove = result.form_data[0]
+                @data_set_hash.delete(data_set_to_remove)
+                @plot.remove_data_set(data_set_to_remove)
+                @derived_function_graph.delete(data_set_to_remove)
+                update_plot_data_sets
+            end
+        end
+
+        def handle_mouse_down mouse_x, mouse_y
+            if @gui_mode == MODE_PLOT and is_cursor_on_graph(mouse_x, mouse_y)
+                @click_x = mouse_x
+                @click_y = mouse_y
+                @gui_mode = MODE_ZOOM_BOX
+                return WidgetResult.new(false)
+            end
         end
     end  
 end

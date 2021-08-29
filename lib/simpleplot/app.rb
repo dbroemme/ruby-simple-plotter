@@ -10,15 +10,12 @@ class SimplePlotterApp < Gosu::Window
     def initialize
         super(900, 700, {:resizable => true})
         self.caption = "Simple Plot App"
-        @widget_start_x = 0
-        @widget_start_y = 100
-        @plotter = SimplePlot::SimplePlot.new(self, 800, 600, @widget_start_x, @widget_start_y) 
         @font = Gosu::Font.new(32)
         @title_font = Gosu::Font.new(38)
         @version_font = Gosu::Font.new(22)
+        @plotter = SimplePlot::SimplePlot.new(self, 0, 100, 800, 600, @version_font) 
         @banner_image = Gosu::Image.new("./media/Banner.png")
         @update_count = 0
-        @pause = false
     end 
 
     def parse_opts_and_run 
@@ -38,7 +35,7 @@ class SimplePlotterApp < Gosu::Window
             end 
             spa.plotter.add_file_data(file_name, file_format)
         else
-            spa.plotter.set_range_and_update_display(SimplePlot::Range.new(0, 10, 0, 10))
+            spa.plotter.set_range_and_update_display(Wads::VisibleRange.new(0, 10, 0, 10))
         end
 
         if opts[:define_function]
@@ -49,14 +46,13 @@ class SimplePlotterApp < Gosu::Window
     end
 
     def update 
-        if not @pause
-            @update_count = @update_count + 1
-        end 
+        @plotter.update(@update_count, mouse_x, mouse_y)
+        @update_count = @update_count + 1
     end 
     
     def draw 
         draw_banner
-        @plotter.render(mouse_x, mouse_y, @update_count)
+        @plotter.draw
     end 
 
     def draw_banner 
@@ -82,7 +78,7 @@ class SimplePlotterApp < Gosu::Window
         else
             close if id == Gosu::KbQ and self.text_input.nil? and @plotter.overlay_widget.nil?
             result = @plotter.button_down id, mouse_x, mouse_y
-            if not result.nil?
+            if not result.nil? and result.is_a? WidgetResult
                 if result.close_widget
                     close 
                 end
